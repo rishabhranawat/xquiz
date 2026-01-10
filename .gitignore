@@ -1,0 +1,29 @@
+# macOS
+.DS_Store
+
+# IDE/Editor
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Dependencies
+node_modules/
+
+# Build/Package artifacts
+*.zip
+*.crx
+*.pem
+
+# Environment/Secrets
+.env
+.env.local
+*.key
+
+# Logs
+*.log
+npm-debug.log*
+
+# Claude Code
+.claude/
