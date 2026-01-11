@@ -18,10 +18,9 @@ const RESERVED_USER_SLUGS = new Set([
   'i', 'tos', 'privacy', 'compose', 'signup', 'login', 'about', 'support'
 ]);
 
-// Attention tracking: tweets currently being viewed
-const tweetViewTimers = new Map(); // tweetElement -> { startTime, timeoutId }
-let requiredViewTimeMs = 2000; // default view time
-const VISIBILITY_THRESHOLD = 0.5; // 50% visible
+// Attention tracking: tweets currently being hovered
+const tweetHoverTimers = new Map(); // tweetElement -> { startTime, timeoutId }
+let requiredViewTimeMs = 2000; // default hover time before counting
 
 function handleAutoOpenGesture() {
   if (!autoOpenEnabled || autoOpenRequestInFlight) {
@@ -535,72 +534,61 @@ function sendTweetsToBackground() {
   sendProgressUpdate();
 }
 
-// Handle tweet entering/exiting viewport
-function handleTweetVisibility(entries) {
-  if (!isExtensionValid()) {
-    visibilityObserver.disconnect();
-    return;
-  }
+// Handle mouse entering a tweet
+function handleTweetMouseEnter(event) {
+  const tweetElement = event.currentTarget;
 
-  // Don't process if not on allowed pages
-  if (!isActive) return;
+  if (!isExtensionValid() || !isActive) return;
 
-  for (const entry of entries) {
-    const tweetElement = entry.target;
+  // Don't start a new timer if one is already running
+  if (tweetHoverTimers.has(tweetElement)) return;
 
-    if (entry.isIntersecting && entry.intersectionRatio >= VISIBILITY_THRESHOLD) {
-      // Tweet is 50%+ visible - start timer if not already running
-      if (!tweetViewTimers.has(tweetElement)) {
-        // Add subtle tracking indicator
-        tweetElement.style.transition = 'box-shadow 0.3s ease';
-        tweetElement.style.boxShadow = 'inset 0 0 0 2px rgba(59, 130, 246, 0.3)';
+  // Add subtle tracking indicator
+  tweetElement.style.transition = 'box-shadow 0.3s ease';
+  tweetElement.style.boxShadow = 'inset 0 0 0 2px rgba(59, 130, 246, 0.3)';
 
-        const timeoutId = setTimeout(() => {
-          // Tweet has been visible for required time - process it
-          tweetViewTimers.delete(tweetElement);
+  const timeoutId = setTimeout(() => {
+    // Tweet has been hovered for required time - process it
+    tweetHoverTimers.delete(tweetElement);
 
-          // Flash green to show it was counted
-          tweetElement.style.boxShadow = 'inset 0 0 0 2px rgba(34, 197, 94, 0.5)';
-          setTimeout(() => {
-            tweetElement.style.boxShadow = 'none';
-          }, 500);
+    // Flash green to show it was counted
+    tweetElement.style.boxShadow = 'inset 0 0 0 2px rgba(34, 197, 94, 0.5)';
+    setTimeout(() => {
+      tweetElement.style.boxShadow = 'none';
+    }, 500);
 
-          processTweet(tweetElement);
-          // Stop observing this tweet
-          visibilityObserver.unobserve(tweetElement);
-        }, requiredViewTimeMs);
+    processTweet(tweetElement);
 
-        tweetViewTimers.set(tweetElement, {
-          startTime: Date.now(),
-          timeoutId
-        });
-      }
-    } else {
-      // Tweet is no longer sufficiently visible - cancel timer
-      const timerData = tweetViewTimers.get(tweetElement);
-      if (timerData) {
-        clearTimeout(timerData.timeoutId);
-        tweetViewTimers.delete(tweetElement);
-        // Remove tracking indicator
-        tweetElement.style.boxShadow = 'none';
-      }
-    }
+    // Remove hover listeners since tweet is processed
+    tweetElement.removeEventListener('mouseenter', handleTweetMouseEnter);
+    tweetElement.removeEventListener('mouseleave', handleTweetMouseLeave);
+  }, requiredViewTimeMs);
+
+  tweetHoverTimers.set(tweetElement, {
+    startTime: Date.now(),
+    timeoutId
+  });
+}
+
+// Handle mouse leaving a tweet
+function handleTweetMouseLeave(event) {
+  const tweetElement = event.currentTarget;
+
+  const timerData = tweetHoverTimers.get(tweetElement);
+  if (timerData) {
+    clearTimeout(timerData.timeoutId);
+    tweetHoverTimers.delete(tweetElement);
+    // Remove tracking indicator
+    tweetElement.style.boxShadow = 'none';
   }
 }
 
-// Set up Intersection Observer for visibility tracking
-const visibilityObserver = new IntersectionObserver(handleTweetVisibility, {
-  threshold: [0, VISIBILITY_THRESHOLD, 1.0], // Track at 0%, 50%, and 100% visibility
-  rootMargin: '0px'
-});
-
-// Track tweets we're already observing
+// Track tweets we've already attached hover listeners to
 const observedTweets = new WeakSet();
 
 function scanForTweets() {
   if (!isExtensionValid()) {
     console.log('[XQuiz] Extension context invalidated, stopping');
-    visibilityObserver.disconnect();
     domObserver.disconnect();
     removeStatusIndicator();
     return;
@@ -617,12 +605,12 @@ function scanForTweets() {
       console.log('[XQuiz] Now on a tracked page - tracking active');
     } else {
       console.log('[XQuiz] Left tracked pages - tracking paused');
-      // Clear any pending timers when leaving feed
-      for (const [element, timerData] of tweetViewTimers) {
+      // Clear any pending hover timers when leaving feed
+      for (const [element, timerData] of tweetHoverTimers) {
         clearTimeout(timerData.timeoutId);
         element.style.boxShadow = 'none';
       }
-      tweetViewTimers.clear();
+      tweetHoverTimers.clear();
     }
   }
 
@@ -636,7 +624,7 @@ function scanForTweets() {
       continue;
     }
 
-    // Skip if already observing this tweet
+    // Skip if already tracking this tweet
     if (observedTweets.has(tweet)) continue;
 
     // Skip if tweet content already processed
@@ -652,9 +640,10 @@ function scanForTweets() {
 
     if (seenTweetHashes.has(contentHash)) continue;
 
-    // Start observing this tweet for visibility
+    // Attach hover listeners to track this tweet
     observedTweets.add(tweet);
-    visibilityObserver.observe(tweet);
+    tweet.addEventListener('mouseenter', handleTweetMouseEnter);
+    tweet.addEventListener('mouseleave', handleTweetMouseLeave);
   }
 }
 
@@ -718,8 +707,8 @@ function startObserving() {
     const feedStatus = isOnTrackedPage() ? 'TRACKING' : 'NOT TRACKING';
     console.log(`[XQuiz] Initialized - ${feedStatus}`);
     console.log(`[XQuiz] Found ${tweetCount} tweets on page`);
-    const viewSeconds = (requiredViewTimeMs / 1000).toFixed(1).replace(/\.0$/, '');
-    console.log(`[XQuiz] Settings: ${tweetsPerQuiz} tweets per quiz, ${viewSeconds}s view time required`);
+    const hoverSeconds = (requiredViewTimeMs / 1000).toFixed(1).replace(/\.0$/, '');
+    console.log(`[XQuiz] Settings: ${tweetsPerQuiz} tweets per quiz, ${hoverSeconds}s hover time required`);
   }, 1000);
 
   console.log('[XQuiz] Content script loaded');

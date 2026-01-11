@@ -124,6 +124,60 @@ function addQuizToHistory(quiz) {
   persistQuizHistory();
 }
 
+function sanitizeJsonString(jsonString) {
+  let result = jsonString
+    // Replace curly/smart quotes with straight quotes
+    .replace(/[""]/g, '"')
+    .replace(/['']/g, "'")
+    // Remove trailing commas before closing brackets/braces
+    .replace(/,\s*([}\]])/g, '$1')
+    .replace(/(\[[^\]]*?),\s*(\])/g, '$1$2')
+    .replace(/(\{[^\}]*?),\s*(\})/g, '$1$2');
+
+  // Fix missing commas between array elements (e.g., "a" "b" -> "a", "b")
+  result = result.replace(/"\s*\n\s*"/g, '",\n"');
+  result = result.replace(/"\s+"/g, '", "');
+
+  // Fix missing commas between array string elements specifically in options
+  result = result.replace(/(\])\s*\n\s*"/g, '],\n"');
+  result = result.replace(/(})\s*\n\s*"/g, '},\n"');
+
+  // Handle case where newline separates array elements without comma
+  result = result.replace(/(")\s*\r?\n\s*(")/g, '$1,\n$2');
+
+  return result;
+}
+
+function parseQuizJson(rawJson) {
+  const attemptParse = (payload) => {
+    try {
+      return JSON.parse(payload);
+    } catch (err) {
+      return null;
+    }
+  };
+
+  const primary = attemptParse(rawJson);
+  if (primary) return primary;
+
+  const repaired = sanitizeJsonString(rawJson);
+  const secondary = attemptParse(repaired);
+  if (secondary) return secondary;
+
+  try {
+    // Final fallback: evaluate as JavaScript to tolerate JSON5-style syntax
+    // like trailing commas or single-quoted strings supplied by the model.
+    // The string comes from a trusted AI response, and we wrap it inside a
+    // function scope to avoid leaking globals.
+    // eslint-disable-next-line no-new-func
+    return Function(`"use strict";return (${repaired});`)();
+  } catch (evalErr) {
+    console.error('[XQuiz] Failed to parse quiz JSON. Raw response:', rawJson);
+    console.error('[XQuiz] After sanitization:', repaired);
+    throw new Error(`Invalid JSON from API: ${evalErr.message}`);
+  }
+}
+
 async function generateQuiz(tweets) {
   // Filter out tweets we've already used
   const unusedTweets = filterUnusedTweets(tweets);
@@ -207,7 +261,7 @@ For fill_blank, options should be null.`;
       cleanJson = cleanJson.replace(/```json?\n?/g, '').replace(/```/g, '').trim();
     }
 
-    const quiz = JSON.parse(cleanJson);
+    const quiz = parseQuizJson(cleanJson);
     quiz.tweets = unusedTweets; // Include source tweets for reference
     quiz.tweetCount = unusedTweets.length;
 
