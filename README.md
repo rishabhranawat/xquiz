@@ -4,6 +4,13 @@ A Chrome extension that tests your attention and retention while scrolling Twitt
 
 **Built entirely with AI agents. 100% vibe coded.**
 
+## Screenshots
+
+<p align="center">
+  <img src="assets/quiz.png" width="400" alt="Quiz Interface">
+  <img src="assets/settings.png" width="400" alt="Settings">
+</p>
+
 ## What it does
 
 XQuiz monitors the tweets you scroll past on Twitter/X and periodically generates quiz questions to test how much you're actually absorbing. It uses Google's Gemini AI to create questions based on the content you've read.
