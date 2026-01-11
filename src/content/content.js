@@ -10,6 +10,8 @@ let statusIndicator = null;
 let autoOpenEnabled = true;
 let autoOpenListenersAttached = false;
 let autoOpenRequestInFlight = false;
+let removeVideosFromFeed = false;
+const VIDEO_HIDE_STYLE_ID = 'xquiz-hide-videos-style';
 
 // Attention tracking: tweets currently being viewed
 const tweetViewTimers = new Map(); // tweetElement -> { startTime, timeoutId }
@@ -59,6 +61,42 @@ function detachAutoOpenListeners() {
 }
 
 attachAutoOpenListeners();
+
+function tweetContainsVideo(tweetElement) {
+  if (!tweetElement) return false;
+  return !!tweetElement.querySelector('video, [data-testid="videoPlayer"], [aria-label="Video"]');
+}
+
+function ensureVideoHideStyle() {
+  if (document.getElementById(VIDEO_HIDE_STYLE_ID)) {
+    return;
+  }
+
+  const style = document.createElement('style');
+  style.id = VIDEO_HIDE_STYLE_ID;
+  style.textContent = `
+    html.xquiz-hide-videos article[data-testid="tweet"]:has(video),
+    html.xquiz-hide-videos article[data-testid="tweet"]:has([data-testid="videoPlayer"]),
+    html.xquiz-hide-videos article[data-testid="tweet"]:has([aria-label="Video"]) {
+      display: none !important;
+    }
+  `;
+
+  (document.head || document.documentElement).appendChild(style);
+}
+
+function applyVideoRemovalSetting() {
+  if (removeVideosFromFeed) {
+    ensureVideoHideStyle();
+    document.documentElement.classList.add('xquiz-hide-videos');
+  } else {
+    document.documentElement.classList.remove('xquiz-hide-videos');
+    const existing = document.getElementById(VIDEO_HIDE_STYLE_ID);
+    if (existing) {
+      existing.remove();
+    }
+  }
+}
 
 // Check if extension context is still valid
 function isExtensionValid() {
@@ -257,16 +295,22 @@ function removeStatusIndicator() {
 }
 
 // Load settings
-chrome.storage.sync.get(['tweetsPerQuiz'], (result) => {
+chrome.storage.sync.get(['tweetsPerQuiz', 'removeVideos'], (result) => {
   if (result.tweetsPerQuiz) {
     tweetsPerQuiz = result.tweetsPerQuiz;
   }
+  removeVideosFromFeed = !!result.removeVideos;
+  applyVideoRemovalSetting();
 });
 
 // Listen for settings updates
 chrome.storage.onChanged.addListener((changes) => {
   if (changes.tweetsPerQuiz) {
     tweetsPerQuiz = changes.tweetsPerQuiz.newValue;
+  }
+  if (changes.removeVideos) {
+    removeVideosFromFeed = !!changes.removeVideos.newValue;
+    applyVideoRemovalSetting();
   }
 });
 
@@ -550,6 +594,10 @@ function scanForTweets() {
   const tweetArticles = document.querySelectorAll('article[data-testid="tweet"]');
 
   for (const tweet of tweetArticles) {
+    if (removeVideosFromFeed && tweetContainsVideo(tweet)) {
+      continue;
+    }
+
     // Skip if already observing this tweet
     if (observedTweets.has(tweet)) continue;
 

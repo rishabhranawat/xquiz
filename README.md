@@ -13,6 +13,7 @@ XQuiz monitors the tweets you scroll past on Twitter/X and periodically generate
 - **Progress tracking** - Monitors your score, accuracy percentage, and answer streaks
 - **Shareable scorecards** - Generate and share your retention stats
 - **Configurable** - Adjust how many tweets trigger a quiz
+- **Video-free mode** - Optional toggle to hide videos from your feed when you want fewer distractions
 
 ## Installation
 

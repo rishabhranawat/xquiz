@@ -46,7 +46,8 @@ class XQuizPanel {
       tweetCounter: document.getElementById('tweet-counter'),
       counterBar: document.getElementById('counter-bar'),
       tweetsSeen: document.getElementById('tweets-seen'),
-      tweetsNeeded: document.getElementById('tweets-needed')
+      tweetsNeeded: document.getElementById('tweets-needed'),
+      removeVideosToggle: document.getElementById('remove-videos-toggle')
     };
 
     this.tweetsPerQuiz = 5;
@@ -117,6 +118,9 @@ class XQuizPanel {
     this.elements.tweetsPerQuizSlider.value = this.tweetsPerQuiz;
     this.elements.tweetsValue.textContent = this.tweetsPerQuiz;
     this.elements.tweetsNeeded.textContent = this.tweetsPerQuiz;
+    if (this.elements.removeVideosToggle) {
+      this.elements.removeVideosToggle.checked = !!response.removeVideos;
+    }
   }
 
   updateTweetCounter(current, total) {
@@ -375,7 +379,8 @@ class XQuizPanel {
     await chrome.runtime.sendMessage({
       type: 'UPDATE_SETTINGS',
       apiKey: this.elements.apiKeyInput.value,
-      tweetsPerQuiz: parseInt(this.elements.tweetsPerQuizSlider.value)
+      tweetsPerQuiz: parseInt(this.elements.tweetsPerQuizSlider.value),
+      removeVideos: this.elements.removeVideosToggle?.checked || false
     });
     this.closeSettings();
   }

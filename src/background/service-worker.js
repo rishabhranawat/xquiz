@@ -239,10 +239,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       break;
 
     case 'GET_SETTINGS':
-      chrome.storage.sync.get(['apiKey', 'tweetsPerQuiz'], (result) => {
+      chrome.storage.sync.get(['apiKey', 'tweetsPerQuiz', 'removeVideos'], (result) => {
         sendResponse({
           apiKey: result.apiKey || '',
-          tweetsPerQuiz: result.tweetsPerQuiz || 5
+          tweetsPerQuiz: result.tweetsPerQuiz || 5,
+          removeVideos: result.removeVideos ?? false
         });
       });
       return true;
@@ -250,7 +251,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     case 'UPDATE_SETTINGS':
       chrome.storage.sync.set({
         apiKey: message.apiKey,
-        tweetsPerQuiz: message.tweetsPerQuiz
+        tweetsPerQuiz: message.tweetsPerQuiz,
+        removeVideos: !!message.removeVideos
       }, () => {
         sendResponse({ success: true });
       });

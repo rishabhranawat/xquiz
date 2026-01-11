@@ -2,7 +2,8 @@ export const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/
 
 export const DEFAULT_SETTINGS = {
   tweetsPerQuiz: 5,
-  apiKey: ''
+  apiKey: '',
+  removeVideos: false
 };
 
 export const QUIZ_TYPES = {

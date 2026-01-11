@@ -107,6 +107,18 @@
               <option value="grok">Grok (X.AI)</option>
             </select>
           </div>
+          <div class="setting-group toggle-group">
+            <div class="toggle-row">
+              <div>
+                <p class="toggle-title">Remove videos from feed</p>
+                <p class="setting-hint">Hide tweets that contain videos so you only see text and images.</p>
+              </div>
+              <label class="switch" aria-label="Remove videos from feed">
+                <input type="checkbox" id="remove-videos-toggle">
+                <span class="slider round"></span>
+              </label>
+            </div>
+          </div>
           <div class="setting-group" id="gemini-key-group">
             <label for="gemini-api-key">Gemini API Key</label>
             <input type="password" id="gemini-api-key" placeholder="Enter your Gemini API key">
