@@ -135,6 +135,8 @@ class XQuizPanel {
         }
       } else if (message.type === 'TWEET_PROGRESS') {
         this.updateTweetCounter(message.current, message.total);
+      } else if (message.type === 'QUIZ_ERROR') {
+        this.showError(message.message || 'Unable to generate quiz. Check your settings.');
       }
     });
   }
@@ -220,6 +222,12 @@ class XQuizPanel {
     if (response?.quiz) {
       this.displayQuiz(response.quiz);
       await this.loadHistory();
+    } else if (response?.message) {
+      const isWaitingMessage = /keep scrolling/i.test(response.message);
+      this.showError(
+        response.message,
+        isWaitingMessage ? 'Keep scrolling' : 'Error'
+      );
     }
   }
 
@@ -411,10 +419,10 @@ class XQuizPanel {
     }
   }
 
-  showError(message) {
+  showError(message, title = 'Error') {
     this.elements.emptyState.classList.remove('hidden');
     this.elements.quizCard.classList.add('hidden');
-    this.elements.emptyState.querySelector('.empty-text').textContent = 'Error';
+    this.elements.emptyState.querySelector('.empty-text').textContent = title;
     this.elements.emptyState.querySelector('.empty-subtext').textContent = message;
   }
 

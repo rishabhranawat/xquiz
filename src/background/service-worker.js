@@ -1,6 +1,7 @@
 // XQuiz Background Service Worker
 
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
+const SYNC_SETTING_KEYS = ['tweetsPerQuiz', 'removeVideos', 'viewTimeMs'];
 
 let quizQueue = [];
 let usedTweetHashes = new Set(); // Track tweets already used in quizzes
@@ -132,7 +133,7 @@ async function generateQuiz(tweets) {
     return { error: 'All these tweets have been used in previous quizzes. Keep scrolling for new content!' };
   }
 
-  const settings = await chrome.storage.sync.get(['apiKey']);
+  const settings = await chrome.storage.local.get(['apiKey']);
   const apiKey = settings.apiKey;
 
   if (!apiKey) {
@@ -235,8 +236,18 @@ function updateStats(isCorrect) {
   chrome.storage.local.set({ stats });
 }
 
+function isTrustedSender(sender) {
+  return !sender?.id || sender.id === chrome.runtime.id;
+}
+
 // Message handler
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (!isTrustedSender(sender)) {
+    console.warn('[XQuiz] Blocked message from untrusted sender:', sender?.id);
+    sendResponse?.({ error: 'UNAUTHORIZED' });
+    return;
+  }
+
   switch (message.type) {
     case 'TWEETS_COLLECTED':
       // Generate quiz from collected tweets
@@ -247,8 +258,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           chrome.runtime.sendMessage({ type: 'QUIZ_READY' }).catch(() => {
             // Side panel might not be listening
           });
+          sendResponse({ success: true });
+        } else {
+          chrome.runtime.sendMessage({ type: 'QUIZ_ERROR', message: quiz.error }).catch(() => {});
+          sendResponse({ success: false, error: quiz.error });
         }
-        sendResponse({ success: !quiz.error });
       });
       return true; // Async response
 
@@ -272,24 +286,27 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       break;
 
     case 'GET_SETTINGS':
-      chrome.storage.sync.get(['apiKey', 'tweetsPerQuiz', 'removeVideos', 'viewTimeMs'], (result) => {
-        sendResponse({
-          apiKey: result.apiKey || '',
-          tweetsPerQuiz: result.tweetsPerQuiz || 5,
-          removeVideos: result.removeVideos ?? false,
-          viewTimeMs: result.viewTimeMs || 2000
+      chrome.storage.sync.get(SYNC_SETTING_KEYS, (syncResult) => {
+        chrome.storage.local.get(['apiKey'], (localResult) => {
+          sendResponse({
+            apiKey: localResult.apiKey || '',
+            tweetsPerQuiz: syncResult.tweetsPerQuiz || 5,
+            removeVideos: syncResult.removeVideos ?? false,
+            viewTimeMs: syncResult.viewTimeMs || 2000
+          });
         });
       });
       return true;
 
     case 'UPDATE_SETTINGS':
-      chrome.storage.sync.set({
-        apiKey: message.apiKey,
-        tweetsPerQuiz: message.tweetsPerQuiz,
-        removeVideos: !!message.removeVideos,
-        viewTimeMs: message.viewTimeMs || 2000
-      }, () => {
-        sendResponse({ success: true });
+      chrome.storage.local.set({ apiKey: message.apiKey || '' }, () => {
+        chrome.storage.sync.set({
+          tweetsPerQuiz: message.tweetsPerQuiz,
+          removeVideos: !!message.removeVideos,
+          viewTimeMs: message.viewTimeMs || 2000
+        }, () => {
+          sendResponse({ success: true });
+        });
       });
       return true;
 

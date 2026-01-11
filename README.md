@@ -17,6 +17,11 @@ XQuiz monitors the tweets you scroll past on Twitter/X and periodically generate
 - **Quiz history** - Review your most recent quiz questions and clear them whenever you like
 - **Custom attention timer** - Pick how long a tweet must stay visible before it counts as “read”
 
+## Security considerations
+
+- Your Gemini API key is stored only in Chrome's local storage (never synced to the cloud) and is only accessible from trusted extension surfaces.
+- Background message handlers validate the sender, preventing other extensions from querying your settings or stats.
+
 ## Installation
 
 1. Clone this repository
