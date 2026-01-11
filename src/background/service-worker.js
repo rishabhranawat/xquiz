@@ -164,18 +164,10 @@ function parseQuizJson(rawJson) {
   const secondary = attemptParse(repaired);
   if (secondary) return secondary;
 
-  try {
-    // Final fallback: evaluate as JavaScript to tolerate JSON5-style syntax
-    // like trailing commas or single-quoted strings supplied by the model.
-    // The string comes from a trusted AI response, and we wrap it inside a
-    // function scope to avoid leaking globals.
-    // eslint-disable-next-line no-new-func
-    return Function(`"use strict";return (${repaired});`)();
-  } catch (evalErr) {
-    console.error('[XQuiz] Failed to parse quiz JSON. Raw response:', rawJson);
-    console.error('[XQuiz] After sanitization:', repaired);
-    throw new Error(`Invalid JSON from API: ${evalErr.message}`);
-  }
+  // Log the failed JSON for debugging
+  console.error('[XQuiz] Failed to parse quiz JSON. Raw response:', rawJson);
+  console.error('[XQuiz] After sanitization:', repaired);
+  throw new Error('Invalid JSON response from API. Please try again.');
 }
 
 async function generateQuiz(tweets) {
