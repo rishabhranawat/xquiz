@@ -11,7 +11,12 @@ let autoOpenEnabled = true;
 let autoOpenListenersAttached = false;
 let autoOpenRequestInFlight = false;
 let removeVideosFromFeed = false;
+let allowedPages = new Set(['home']);
 const VIDEO_HIDE_STYLE_ID = 'xquiz-hide-videos-style';
+const RESERVED_USER_SLUGS = new Set([
+  'home', 'explore', 'notifications', 'messages', 'settings', 'search',
+  'i', 'tos', 'privacy', 'compose', 'signup', 'login', 'about', 'support'
+]);
 
 // Attention tracking: tweets currently being viewed
 const tweetViewTimers = new Map(); // tweetElement -> { startTime, timeoutId }
@@ -25,6 +30,13 @@ function handleAutoOpenGesture() {
 
   autoOpenRequestInFlight = true;
   detachAutoOpenListeners();
+
+  if (!isExtensionValid()) {
+    autoOpenRequestInFlight = false;
+    autoOpenEnabled = true;
+    attachAutoOpenListeners();
+    return;
+  }
 
   chrome.runtime.sendMessage({ type: 'OPEN_SIDE_PANEL' }, (response) => {
     autoOpenRequestInFlight = false;
@@ -61,6 +73,36 @@ function detachAutoOpenListeners() {
 }
 
 attachAutoOpenListeners();
+
+function updateAllowedPages(newPages) {
+  if (Array.isArray(newPages) && newPages.length) {
+    allowedPages = new Set(newPages);
+  } else {
+    allowedPages = new Set(['home']);
+  }
+}
+
+function isProfilePath(segments) {
+  if (!segments.length) return false;
+  const handle = segments[0].toLowerCase();
+  if (RESERVED_USER_SLUGS.has(handle)) return false;
+  return /^[a-z0-9_]{1,15}$/i.test(handle);
+}
+
+function isOnTrackedPage() {
+  const path = window.location.pathname || '/';
+  const segments = path.split('/').filter(Boolean);
+
+  if (allowedPages.has('home') && (path === '/' || path === '/home')) {
+    return true;
+  }
+
+  if (allowedPages.has('profiles') && isProfilePath(segments)) {
+    return true;
+  }
+
+  return false;
+}
 
 function tweetContainsVideo(tweetElement) {
   if (!tweetElement) return false;
@@ -105,23 +147,6 @@ function isExtensionValid() {
   } catch (e) {
     return false;
   }
-}
-
-// Check if we're on the home feed (not profile, tweet, settings, etc.)
-function isOnHomeFeed() {
-  const path = window.location.pathname;
-  const validPaths = ['/home', '/'];
-
-  // Check for home feed or "For You" / "Following" tabs
-  if (validPaths.includes(path)) return true;
-
-  // Also check for x.com without path
-  if (path === '' || path === '/') {
-    // Make sure we're not on a subdomain or different page
-    return true;
-  }
-
-  return false;
 }
 
 // Create floating status indicator
@@ -295,7 +320,7 @@ function removeStatusIndicator() {
 }
 
 // Load settings
-chrome.storage.sync.get(['tweetsPerQuiz', 'removeVideos', 'viewTimeMs'], (result) => {
+chrome.storage.sync.get(['tweetsPerQuiz', 'removeVideos', 'viewTimeMs', 'allowedPages'], (result) => {
   if (result.tweetsPerQuiz) {
     tweetsPerQuiz = result.tweetsPerQuiz;
   }
@@ -303,6 +328,7 @@ chrome.storage.sync.get(['tweetsPerQuiz', 'removeVideos', 'viewTimeMs'], (result
   if (result.viewTimeMs) {
     requiredViewTimeMs = result.viewTimeMs;
   }
+  updateAllowedPages(result.allowedPages);
   applyVideoRemovalSetting();
 });
 
@@ -317,6 +343,12 @@ chrome.storage.onChanged.addListener((changes) => {
   }
   if (changes.viewTimeMs) {
     requiredViewTimeMs = changes.viewTimeMs.newValue;
+  }
+  if (changes.allowedPages) {
+    updateAllowedPages(changes.allowedPages.newValue);
+    // re-evaluate immediately
+    isActive = isOnTrackedPage();
+    updateStatusIndicator(isActive, tweetBuffer.length);
   }
 });
 
@@ -510,7 +542,7 @@ function handleTweetVisibility(entries) {
     return;
   }
 
-  // Don't process if not on home feed
+  // Don't process if not on allowed pages
   if (!isActive) return;
 
   for (const entry of entries) {
@@ -574,17 +606,17 @@ function scanForTweets() {
     return;
   }
 
-  // Check if we're on the home feed
-  const onFeed = isOnHomeFeed();
+  // Check if we're on a tracked page
+  const onFeed = isOnTrackedPage();
 
   if (onFeed !== isActive) {
     isActive = onFeed;
     updateStatusIndicator(isActive, tweetBuffer.length);
 
     if (isActive) {
-      console.log('[XQuiz] Now on home feed - tracking active');
+      console.log('[XQuiz] Now on a tracked page - tracking active');
     } else {
-      console.log('[XQuiz] Left home feed - tracking paused');
+      console.log('[XQuiz] Left tracked pages - tracking paused');
       // Clear any pending timers when leaving feed
       for (const [element, timerData] of tweetViewTimers) {
         clearTimeout(timerData.timeoutId);
@@ -594,7 +626,7 @@ function scanForTweets() {
     }
   }
 
-  // Only scan if on home feed
+  // Only scan if on tracked pages
   if (!isActive) return;
 
   const tweetArticles = document.querySelectorAll('article[data-testid="tweet"]');
@@ -683,7 +715,7 @@ function startObserving() {
   setTimeout(() => {
     scanForTweets();
     const tweetCount = document.querySelectorAll('article[data-testid="tweet"]').length;
-    const feedStatus = isOnHomeFeed() ? 'ON HOME FEED' : 'NOT on home feed';
+    const feedStatus = isOnTrackedPage() ? 'TRACKING' : 'NOT TRACKING';
     console.log(`[XQuiz] Initialized - ${feedStatus}`);
     console.log(`[XQuiz] Found ${tweetCount} tweets on page`);
     const viewSeconds = (requiredViewTimeMs / 1000).toFixed(1).replace(/\.0$/, '');
@@ -691,7 +723,7 @@ function startObserving() {
   }, 1000);
 
   console.log('[XQuiz] Content script loaded');
-  console.log('[XQuiz] Only active on home feed - look for the indicator in bottom right');
+console.log('[XQuiz] Only active on selected pages - look for the indicator in bottom right');
 }
 
 // Wait for page to be ready
@@ -713,7 +745,7 @@ setTimeout(() => {
   if (!document.getElementById('xquiz-status')) {
     console.log('[XQuiz] Fallback: creating indicator');
     createStatusIndicator();
-    updateStatusIndicator(isOnHomeFeed(), tweetBuffer.length);
+    updateStatusIndicator(isOnTrackedPage(), tweetBuffer.length);
   }
 }, 2000);
 

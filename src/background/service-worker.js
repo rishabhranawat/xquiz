@@ -1,7 +1,7 @@
 // XQuiz Background Service Worker
 
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
-const SYNC_SETTING_KEYS = ['tweetsPerQuiz', 'removeVideos', 'viewTimeMs'];
+const SYNC_SETTING_KEYS = ['tweetsPerQuiz', 'removeVideos', 'viewTimeMs', 'allowedPages'];
 
 let quizQueue = [];
 let usedTweetHashes = new Set(); // Track tweets already used in quizzes
@@ -292,7 +292,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             apiKey: localResult.apiKey || '',
             tweetsPerQuiz: syncResult.tweetsPerQuiz || 5,
             removeVideos: syncResult.removeVideos ?? false,
-            viewTimeMs: syncResult.viewTimeMs || 2000
+            viewTimeMs: syncResult.viewTimeMs || 2000,
+            allowedPages: Array.isArray(syncResult.allowedPages) && syncResult.allowedPages.length
+              ? syncResult.allowedPages
+              : ['home']
           });
         });
       });
@@ -303,7 +306,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         chrome.storage.sync.set({
           tweetsPerQuiz: message.tweetsPerQuiz,
           removeVideos: !!message.removeVideos,
-          viewTimeMs: message.viewTimeMs || 2000
+          viewTimeMs: message.viewTimeMs || 2000,
+          allowedPages: Array.isArray(message.allowedPages) && message.allowedPages.length
+            ? message.allowedPages
+            : ['home']
         }, () => {
           sendResponse({ success: true });
         });

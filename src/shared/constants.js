@@ -4,7 +4,8 @@ export const DEFAULT_SETTINGS = {
   tweetsPerQuiz: 5,
   apiKey: '',
   removeVideos: false,
-  viewTimeMs: 2000
+  viewTimeMs: 2000,
+  allowedPages: ['home']
 };
 
 export const QUIZ_TYPES = {

@@ -50,6 +50,7 @@ class XQuizPanel {
       tweetsSeen: document.getElementById('tweets-seen'),
       tweetsNeeded: document.getElementById('tweets-needed'),
       removeVideosToggle: document.getElementById('remove-videos-toggle'),
+      pageCheckboxes: Array.from(document.querySelectorAll('[data-track-page]')),
       historyList: document.getElementById('history-list'),
       clearQuizHistory: document.getElementById('clear-quiz-history')
     };
@@ -164,6 +165,14 @@ class XQuizPanel {
     }
     if (this.elements.removeVideosToggle) {
       this.elements.removeVideosToggle.checked = !!response.removeVideos;
+    }
+    const selectedPages = Array.isArray(response.allowedPages) && response.allowedPages.length
+      ? response.allowedPages
+      : ['home'];
+    if (this.elements.pageCheckboxes?.length) {
+      this.elements.pageCheckboxes.forEach((checkbox) => {
+        checkbox.checked = selectedPages.includes(checkbox.value);
+      });
     }
   }
 
@@ -441,13 +450,25 @@ class XQuizPanel {
     const viewTimeSetting = this.elements.viewTimeSlider
       ? parseInt(this.elements.viewTimeSlider.value, 10) * 1000
       : 2000;
+    const selectedPages = this.elements.pageCheckboxes
+      ? this.elements.pageCheckboxes.filter(cb => cb.checked).map(cb => cb.value)
+      : ['home'];
+    if (selectedPages.length === 0) {
+      selectedPages.push('home');
+      this.elements.pageCheckboxes?.forEach((checkbox) => {
+        if (checkbox.value === 'home') {
+          checkbox.checked = true;
+        }
+      });
+    }
 
     await this.safeMessage({
       type: 'UPDATE_SETTINGS',
       apiKey: this.elements.apiKeyInput.value,
       tweetsPerQuiz: tweetsSetting,
       removeVideos: this.elements.removeVideosToggle?.checked || false,
-      viewTimeMs: viewTimeSetting
+      viewTimeMs: viewTimeSetting,
+      allowedPages: selectedPages
     });
     this.closeSettings();
   }

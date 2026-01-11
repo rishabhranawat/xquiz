@@ -544,6 +544,9 @@ body {
   border: 1px solid var(--border);
   width: 100%;
   max-width: 360px;
+  max-height: calc(100vh - 60px);
+  display: flex;
+  flex-direction: column;
   animation: slideIn 0.3s ease;
 }
 
@@ -575,6 +578,8 @@ body {
 
 .modal-content {
   padding: 20px;
+  overflow-y: auto;
+  flex: 1;
 }
 
 .setting-group {
@@ -669,6 +674,42 @@ body {
   font-weight: 500;
   color: var(--text-primary);
   margin-bottom: 4px;
+}
+
+.page-options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.page-option {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-tertiary);
+  cursor: pointer;
+}
+
+.page-option input {
+  width: 16px;
+  height: 16px;
+}
+
+.page-option span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.page-option strong {
+  font-size: 13px;
+  color: var(--text-primary);
 }
 
 .switch {
@@ -779,6 +820,7 @@ body {
 .modal-footer {
   padding: 16px 20px;
   border-top: 1px solid var(--border);
+  background: var(--bg-secondary);
 }
 
 .save-btn {

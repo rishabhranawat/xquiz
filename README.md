@@ -16,6 +16,7 @@ XQuiz monitors the tweets you scroll past on Twitter/X and periodically generate
 - **Video-free mode** - Optional toggle to hide videos from your feed when you want fewer distractions
 - **Quiz history** - Review your most recent quiz questions and clear them whenever you like
 - **Custom attention timer** - Pick how long a tweet must stay visible before it counts as “read”
+- **Track specific pages** - Decide whether quizzes should monitor only the home feed or additional sections like user profiles
 
 ## Security considerations
 
