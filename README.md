@@ -2,9 +2,11 @@
 
 A Chrome extension that tests your attention and retention while scrolling Twitter/X.
 
+**Built entirely with AI agents. 100% vibe coded.**
+
 ## Demo
 
-https://github.com/rishabhranawat/xquiz/raw/main/assets/demo.mp4
+![XQuiz Demo](assets/demo.gif)
 
 ## What it does
 
