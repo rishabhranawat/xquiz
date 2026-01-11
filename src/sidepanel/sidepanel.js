@@ -59,6 +59,20 @@ class XQuizPanel {
     this.init();
   }
 
+  async safeMessage(message, fallback = null) {
+    if (!chrome.runtime?.id) {
+      console.warn('[XQuiz] Extension context invalidated. Skipping message:', message.type);
+      return fallback;
+    }
+    try {
+      const response = await chrome.runtime.sendMessage(message);
+      return response ?? fallback;
+    } catch (error) {
+      console.warn(`[XQuiz] Failed to send message ${message.type}:`, error);
+      return fallback;
+    }
+  }
+
   async init() {
     this.setupEventListeners();
     await this.loadSettings();
@@ -126,12 +140,20 @@ class XQuizPanel {
   }
 
   async loadSettings() {
-    const response = await chrome.runtime.sendMessage({ type: 'GET_SETTINGS' });
+    const response = await this.safeMessage({ type: 'GET_SETTINGS' }, {});
+    if (!response) return;
+
     this.elements.apiKeyInput.value = response.apiKey || '';
     this.tweetsPerQuiz = response.tweetsPerQuiz || 5;
-    this.elements.tweetsPerQuizSlider.value = this.tweetsPerQuiz;
-    this.elements.tweetsValue.textContent = this.tweetsPerQuiz;
-    this.elements.tweetsNeeded.textContent = this.tweetsPerQuiz;
+    if (this.elements.tweetsPerQuizSlider) {
+      this.elements.tweetsPerQuizSlider.value = this.tweetsPerQuiz;
+    }
+    if (this.elements.tweetsValue) {
+      this.elements.tweetsValue.textContent = this.tweetsPerQuiz;
+    }
+    if (this.elements.tweetsNeeded) {
+      this.elements.tweetsNeeded.textContent = this.tweetsPerQuiz;
+    }
     if (this.elements.viewTimeSlider) {
       const seconds = Math.round((response.viewTimeMs || 2000) / 1000);
       const clampedSeconds = Math.min(Math.max(seconds, 1), 6);
@@ -158,8 +180,16 @@ class XQuizPanel {
   }
 
   async loadStats() {
-    const response = await chrome.runtime.sendMessage({ type: 'GET_STATS' });
-    this.updateStatsDisplay(response.stats);
+    const fallbackStats = {
+      totalQuestions: 0,
+      correctAnswers: 0,
+      currentStreak: 0,
+      bestStreak: 0
+    };
+    const response = await this.safeMessage({ type: 'GET_STATS' }, { stats: fallbackStats });
+    if (response?.stats) {
+      this.updateStatsDisplay(response.stats);
+    }
   }
 
   updateStatsDisplay(stats) {
@@ -186,8 +216,8 @@ class XQuizPanel {
   }
 
   async fetchAndDisplayQuiz() {
-    const response = await chrome.runtime.sendMessage({ type: 'REQUEST_QUIZ' });
-    if (response.quiz) {
+    const response = await this.safeMessage({ type: 'REQUEST_QUIZ' }, { quiz: null });
+    if (response?.quiz) {
       this.displayQuiz(response.quiz);
       await this.loadHistory();
     }
@@ -397,34 +427,43 @@ class XQuizPanel {
   }
 
   async saveSettings() {
-    await chrome.runtime.sendMessage({
+    const tweetsSetting = this.elements.tweetsPerQuizSlider
+      ? parseInt(this.elements.tweetsPerQuizSlider.value, 10)
+      : this.tweetsPerQuiz;
+    const viewTimeSetting = this.elements.viewTimeSlider
+      ? parseInt(this.elements.viewTimeSlider.value, 10) * 1000
+      : 2000;
+
+    await this.safeMessage({
       type: 'UPDATE_SETTINGS',
       apiKey: this.elements.apiKeyInput.value,
-      tweetsPerQuiz: parseInt(this.elements.tweetsPerQuizSlider.value),
+      tweetsPerQuiz: tweetsSetting,
       removeVideos: this.elements.removeVideosToggle?.checked || false,
-      viewTimeMs: this.elements.viewTimeSlider ? parseInt(this.elements.viewTimeSlider.value, 10) * 1000 : 2000
+      viewTimeMs: viewTimeSetting
     });
     this.closeSettings();
   }
 
   async resetStats() {
     if (confirm('Reset all stats? This cannot be undone.')) {
-      const response = await chrome.runtime.sendMessage({ type: 'RESET_STATS' });
-      this.updateStatsDisplay(response.stats);
+      const response = await this.safeMessage({ type: 'RESET_STATS' });
+      if (response?.stats) {
+        this.updateStatsDisplay(response.stats);
+      }
       this.closeSettings();
     }
   }
 
   async clearTweetHistory() {
     if (confirm('Clear tweet history? You may see quizzes about tweets you\'ve already been tested on.')) {
-      await chrome.runtime.sendMessage({ type: 'CLEAR_TWEET_HISTORY' });
+      await this.safeMessage({ type: 'CLEAR_TWEET_HISTORY' });
       this.closeSettings();
     }
   }
 
   async loadHistory() {
-    const response = await chrome.runtime.sendMessage({ type: 'GET_QUIZ_HISTORY' });
-    this.history = response.history || [];
+    const response = await this.safeMessage({ type: 'GET_QUIZ_HISTORY' }, { history: [] });
+    this.history = response?.history || [];
     this.renderHistory();
   }
 
@@ -500,7 +539,7 @@ class XQuizPanel {
     }
 
     if (confirm('Clear all saved quiz questions?')) {
-      await chrome.runtime.sendMessage({ type: 'CLEAR_QUIZ_HISTORY' });
+      await this.safeMessage({ type: 'CLEAR_QUIZ_HISTORY' });
       await this.loadHistory();
     }
   }
@@ -522,8 +561,14 @@ class XQuizPanel {
     this.elements.shareError.classList.add('hidden');
 
     // Get current stats
-    const response = await chrome.runtime.sendMessage({ type: 'GET_STATS' });
-    const { stats } = response;
+    const fallbackStats = {
+      totalQuestions: 0,
+      correctAnswers: 0,
+      currentStreak: 0,
+      bestStreak: 0
+    };
+    const response = await this.safeMessage({ type: 'GET_STATS' }, { stats: fallbackStats });
+    const stats = response?.stats || fallbackStats;
 
     const accuracy = stats.totalQuestions > 0
       ? Math.round((stats.correctAnswers / stats.totalQuestions) * 100)
