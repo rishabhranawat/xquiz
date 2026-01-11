@@ -6,11 +6,59 @@ let tweetBuffer = [];
 let tweetsPerQuiz = 5;
 let isActive = false;
 let statusIndicator = null;
+// Auto-open state for the side panel – we need a user gesture to request it.
+let autoOpenEnabled = true;
+let autoOpenListenersAttached = false;
+let autoOpenRequestInFlight = false;
 
 // Attention tracking: tweets currently being viewed
 const tweetViewTimers = new Map(); // tweetElement -> { startTime, timeoutId }
 const REQUIRED_VIEW_TIME = 2000; // 2 seconds
 const VISIBILITY_THRESHOLD = 0.5; // 50% visible
+
+function handleAutoOpenGesture() {
+  if (!autoOpenEnabled || autoOpenRequestInFlight) {
+    return;
+  }
+
+  autoOpenRequestInFlight = true;
+  detachAutoOpenListeners();
+
+  chrome.runtime.sendMessage({ type: 'OPEN_SIDE_PANEL' }, (response) => {
+    autoOpenRequestInFlight = false;
+    const runtimeError = chrome.runtime.lastError;
+    if (runtimeError || !response?.success) {
+      // Try again on the next user gesture if Chrome rejected the request.
+      attachAutoOpenListeners();
+      return;
+    }
+
+    // We successfully opened the panel; wait for the background script to re-arm us.
+    autoOpenEnabled = false;
+  });
+}
+
+function attachAutoOpenListeners() {
+  if (!autoOpenEnabled || autoOpenListenersAttached || autoOpenRequestInFlight) {
+    return;
+  }
+
+  window.addEventListener('pointerdown', handleAutoOpenGesture, true);
+  window.addEventListener('keydown', handleAutoOpenGesture, true);
+  autoOpenListenersAttached = true;
+}
+
+function detachAutoOpenListeners() {
+  if (!autoOpenListenersAttached) {
+    return;
+  }
+
+  window.removeEventListener('pointerdown', handleAutoOpenGesture, true);
+  window.removeEventListener('keydown', handleAutoOpenGesture, true);
+  autoOpenListenersAttached = false;
+}
+
+attachAutoOpenListeners();
 
 // Check if extension context is still valid
 function isExtensionValid() {
@@ -615,3 +663,11 @@ setTimeout(() => {
 }, 2000);
 
 console.log('[XQuiz] Content script fully loaded');
+
+chrome.runtime.onMessage.addListener((message) => {
+  if (message.type === 'XQUIZ_ENABLE_AUTO_OPEN') {
+    autoOpenEnabled = true;
+    autoOpenRequestInFlight = false;
+    attachAutoOpenListeners();
+  }
+});

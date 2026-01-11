@@ -26,15 +26,51 @@ chrome.action.onClicked.addListener((tab) => {
   chrome.sidePanel.open({ tabId: tab.id });
 });
 
-// Enable side panel for Twitter/X
-chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-  if (tab.url?.match(/https:\/\/(twitter|x)\.com/)) {
-    chrome.sidePanel.setOptions({
-      tabId,
-      path: 'src/sidepanel/index.html',
-      enabled: true
-    });
+// Auto enable/disable side panel based on the current tab's URL.
+const X_HOSTNAMES = ['x.com', 'twitter.com'];
+
+async function updateSidePanel(tabId) {
+  try {
+    const tab = await chrome.tabs.get(tabId);
+    // Ensure the tab has a URL before proceeding.
+    if (!tab.url) {
+      return;
+    }
+
+    const url = new URL(tab.url);
+    if (X_HOSTNAMES.includes(url.hostname)) {
+      // Enable the side panel for X/Twitter, allowing it to be opened by the user.
+      await chrome.sidePanel.setOptions({
+        tabId,
+        path: 'src/sidepanel/index.html',
+        enabled: true,
+      });
+      // Notify the content script so it can request an automatic open on user gesture.
+      chrome.tabs.sendMessage(tabId, { type: 'XQUIZ_ENABLE_AUTO_OPEN' }).catch(() => {});
+    } else {
+      // Disable the side panel for all other sites. This will cause it to close.
+      await chrome.sidePanel.setOptions({
+        tabId,
+        enabled: false,
+      });
+    }
+  } catch (error) {
+    // This can happen if the tab is closed before the update completes.
+    console.warn(`[XQuiz] Failed to update side panel for tab ${tabId}:`, error.message);
   }
+}
+
+// Update the side panel when a tab's URL changes.
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  // We only need to act when the tab has finished loading and has a URL.
+  if (changeInfo.status === 'complete' && tab.url) {
+    updateSidePanel(tabId);
+  }
+});
+
+// Update the side panel when the user switches to a different tab.
+chrome.tabs.onActivated.addListener((activeInfo) => {
+  updateSidePanel(activeInfo.tabId);
 });
 
 function filterUnusedTweets(tweets) {
@@ -250,6 +286,16 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     case 'GENERATE_SCORECARD':
       // Scorecard is now generated client-side with canvas
       sendResponse({ useCanvas: true, accuracy: message.accuracy, streak: message.streak });
+      break;
+
+    case 'OPEN_SIDE_PANEL':
+      if (sender.tab?.id != null) {
+        chrome.sidePanel.open({ tabId: sender.tab.id })
+          .then(() => sendResponse({ success: true }))
+          .catch((error) => sendResponse({ success: false, error: error.message }));
+        return true;
+      }
+      sendResponse({ success: false, error: 'Missing tab information for side panel open request.' });
       break;
   }
 });

@@ -11,7 +11,7 @@ class XQuizPanel {
       settingsModal: document.getElementById('settings-modal'),
       closeSettings: document.getElementById('close-settings'),
       saveSettings: document.getElementById('save-settings'),
-      apiKeyInput: document.getElementById('api-key'),
+      apiKeyInput: document.getElementById('gemini-api-key'),
       tweetsPerQuizSlider: document.getElementById('tweets-per-quiz'),
       tweetsValue: document.getElementById('tweets-value'),
       resetStats: document.getElementById('reset-stats'),
@@ -614,5 +614,7 @@ Are you actually reading your feed or just scrolling? Find out 👇`;
   }
 }
 
-// Initialize
-new XQuizPanel();
+// Initialize when the DOM is fully loaded
+document.addEventListener('DOMContentLoaded', () => {
+  new XQuizPanel();
+});

@@ -101,9 +101,21 @@
         </div>
         <div class="modal-content">
           <div class="setting-group">
-            <label for="api-key">Gemini API Key</label>
-            <input type="password" id="api-key" placeholder="Enter your API key">
+            <label for="model-select">AI Model</label>
+            <select id="model-select" class="model-select">
+              <option value="gemini">Gemini Flash</option>
+              <option value="grok">Grok (X.AI)</option>
+            </select>
+          </div>
+          <div class="setting-group" id="gemini-key-group">
+            <label for="gemini-api-key">Gemini API Key</label>
+            <input type="password" id="gemini-api-key" placeholder="Enter your Gemini API key">
             <p class="setting-hint">Get a free key at <a href="https://aistudio.google.com/apikey" target="_blank">Google AI Studio</a></p>
+          </div>
+          <div class="setting-group hidden" id="grok-key-group">
+            <label for="grok-api-key">Grok API Key</label>
+            <input type="password" id="grok-api-key" placeholder="Enter your Grok API key">
+            <p class="setting-hint">Get a key at <a href="https://console.x.ai" target="_blank">X.AI Console</a></p>
           </div>
           <div class="setting-group">
             <label for="tweets-per-quiz">Tweets per Quiz</label>
