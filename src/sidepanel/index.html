@@ -90,6 +90,17 @@
           <button class="next-btn" id="next-btn">Next Question</button>
         </div>
       </div>
+
+      <!-- Quiz History -->
+      <section class="history-section">
+        <div class="history-header">
+          <h2>Past Questions</h2>
+          <button class="clear-history-btn" id="clear-quiz-history">Clear</button>
+        </div>
+        <div class="history-list" id="history-list">
+          <p class="history-empty">No past questions yet.</p>
+        </div>
+      </section>
     </main>
 
     <!-- Settings Modal -->
@@ -135,6 +146,14 @@
               <input type="range" id="tweets-per-quiz" min="3" max="10" value="5">
               <span class="slider-value" id="tweets-value">5</span>
             </div>
+          </div>
+          <div class="setting-group">
+            <label for="view-time-seconds">Seconds required to count as read</label>
+            <div class="slider-container">
+              <input type="range" id="view-time-seconds" min="1" max="6" value="2">
+              <span class="slider-value" id="view-time-value">2s</span>
+            </div>
+            <p class="setting-hint">Adjust how long a tweet must stay on screen before it’s tracked.</p>
           </div>
           <div class="setting-group">
             <button class="reset-btn" id="reset-stats">Reset Stats</button>

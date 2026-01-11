@@ -14,6 +14,8 @@ class XQuizPanel {
       apiKeyInput: document.getElementById('gemini-api-key'),
       tweetsPerQuizSlider: document.getElementById('tweets-per-quiz'),
       tweetsValue: document.getElementById('tweets-value'),
+      viewTimeSlider: document.getElementById('view-time-seconds'),
+      viewTimeValue: document.getElementById('view-time-value'),
       resetStats: document.getElementById('reset-stats'),
       clearHistory: document.getElementById('clear-history'),
       shareBtn: document.getElementById('share-btn'),
@@ -47,10 +49,13 @@ class XQuizPanel {
       counterBar: document.getElementById('counter-bar'),
       tweetsSeen: document.getElementById('tweets-seen'),
       tweetsNeeded: document.getElementById('tweets-needed'),
-      removeVideosToggle: document.getElementById('remove-videos-toggle')
+      removeVideosToggle: document.getElementById('remove-videos-toggle'),
+      historyList: document.getElementById('history-list'),
+      clearQuizHistory: document.getElementById('clear-quiz-history')
     };
 
     this.tweetsPerQuiz = 5;
+    this.history = [];
     this.init();
   }
 
@@ -58,6 +63,7 @@ class XQuizPanel {
     this.setupEventListeners();
     await this.loadSettings();
     await this.loadStats();
+    await this.loadHistory();
     await this.checkForQuiz();
   }
 
@@ -73,9 +79,17 @@ class XQuizPanel {
     this.elements.tweetsPerQuizSlider.addEventListener('input', (e) => {
       this.elements.tweetsValue.textContent = e.target.value;
     });
+    if (this.elements.viewTimeSlider) {
+      this.elements.viewTimeSlider.addEventListener('input', (e) => {
+        this.elements.viewTimeValue.textContent = `${e.target.value}s`;
+      });
+    }
     this.elements.saveSettings.addEventListener('click', () => this.saveSettings());
     this.elements.resetStats.addEventListener('click', () => this.resetStats());
     this.elements.clearHistory.addEventListener('click', () => this.clearTweetHistory());
+    if (this.elements.clearQuizHistory) {
+      this.elements.clearQuizHistory.addEventListener('click', () => this.clearQuizHistory());
+    }
 
     // Share modal
     this.elements.shareBtn.addEventListener('click', () => this.openShare());
@@ -118,6 +132,12 @@ class XQuizPanel {
     this.elements.tweetsPerQuizSlider.value = this.tweetsPerQuiz;
     this.elements.tweetsValue.textContent = this.tweetsPerQuiz;
     this.elements.tweetsNeeded.textContent = this.tweetsPerQuiz;
+    if (this.elements.viewTimeSlider) {
+      const seconds = Math.round((response.viewTimeMs || 2000) / 1000);
+      const clampedSeconds = Math.min(Math.max(seconds, 1), 6);
+      this.elements.viewTimeSlider.value = clampedSeconds;
+      this.elements.viewTimeValue.textContent = `${clampedSeconds}s`;
+    }
     if (this.elements.removeVideosToggle) {
       this.elements.removeVideosToggle.checked = !!response.removeVideos;
     }
@@ -169,6 +189,7 @@ class XQuizPanel {
     const response = await chrome.runtime.sendMessage({ type: 'REQUEST_QUIZ' });
     if (response.quiz) {
       this.displayQuiz(response.quiz);
+      await this.loadHistory();
     }
   }
 
@@ -380,7 +401,8 @@ class XQuizPanel {
       type: 'UPDATE_SETTINGS',
       apiKey: this.elements.apiKeyInput.value,
       tweetsPerQuiz: parseInt(this.elements.tweetsPerQuizSlider.value),
-      removeVideos: this.elements.removeVideosToggle?.checked || false
+      removeVideos: this.elements.removeVideosToggle?.checked || false,
+      viewTimeMs: this.elements.viewTimeSlider ? parseInt(this.elements.viewTimeSlider.value, 10) * 1000 : 2000
     });
     this.closeSettings();
   }
@@ -397,6 +419,89 @@ class XQuizPanel {
     if (confirm('Clear tweet history? You may see quizzes about tweets you\'ve already been tested on.')) {
       await chrome.runtime.sendMessage({ type: 'CLEAR_TWEET_HISTORY' });
       this.closeSettings();
+    }
+  }
+
+  async loadHistory() {
+    const response = await chrome.runtime.sendMessage({ type: 'GET_QUIZ_HISTORY' });
+    this.history = response.history || [];
+    this.renderHistory();
+  }
+
+  renderHistory() {
+    if (!this.elements.historyList) return;
+    this.elements.historyList.innerHTML = '';
+
+    if (!this.history.length) {
+      this.elements.historyList.innerHTML = '<p class="history-empty">No past questions yet.</p>';
+      if (this.elements.clearQuizHistory) {
+        this.elements.clearQuizHistory.disabled = true;
+      }
+      return;
+    }
+
+    if (this.elements.clearQuizHistory) {
+      this.elements.clearQuizHistory.disabled = false;
+    }
+
+    const typeLabels = {
+      'multiple_choice': 'Multiple Choice',
+      'true_false': 'True/False',
+      'fill_blank': 'Fill in the Blank'
+    };
+
+    this.history.forEach((entry) => {
+      const item = document.createElement('div');
+      item.className = 'history-item';
+
+      const formattedDate = new Date(entry.timestamp).toLocaleString();
+      const optionsText = Array.isArray(entry.options) ? entry.options.join(' • ') : null;
+
+      const meta = document.createElement('div');
+      meta.className = 'history-meta';
+
+      const typeLabel = document.createElement('span');
+      typeLabel.className = 'history-type';
+      typeLabel.textContent = typeLabels[entry.type] || entry.type;
+
+      const timeLabel = document.createElement('span');
+      timeLabel.className = 'history-time';
+      timeLabel.textContent = formattedDate;
+
+      meta.appendChild(typeLabel);
+      meta.appendChild(timeLabel);
+
+      const question = document.createElement('p');
+      question.className = 'history-question';
+      question.textContent = entry.question;
+
+      item.appendChild(meta);
+      item.appendChild(question);
+
+      if (optionsText) {
+        const optionsEl = document.createElement('p');
+        optionsEl.className = 'history-options';
+        optionsEl.textContent = optionsText;
+        item.appendChild(optionsEl);
+      }
+
+      const answer = document.createElement('p');
+      answer.className = 'history-answer';
+      answer.textContent = `Answer: ${entry.answer}`;
+      item.appendChild(answer);
+
+      this.elements.historyList.appendChild(item);
+    });
+  }
+
+  async clearQuizHistory() {
+    if (!this.history.length) {
+      return;
+    }
+
+    if (confirm('Clear all saved quiz questions?')) {
+      await chrome.runtime.sendMessage({ type: 'CLEAR_QUIZ_HISTORY' });
+      await this.loadHistory();
     }
   }
 

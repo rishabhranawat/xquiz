@@ -15,7 +15,7 @@ const VIDEO_HIDE_STYLE_ID = 'xquiz-hide-videos-style';
 
 // Attention tracking: tweets currently being viewed
 const tweetViewTimers = new Map(); // tweetElement -> { startTime, timeoutId }
-const REQUIRED_VIEW_TIME = 2000; // 2 seconds
+let requiredViewTimeMs = 2000; // default view time
 const VISIBILITY_THRESHOLD = 0.5; // 50% visible
 
 function handleAutoOpenGesture() {
@@ -295,11 +295,14 @@ function removeStatusIndicator() {
 }
 
 // Load settings
-chrome.storage.sync.get(['tweetsPerQuiz', 'removeVideos'], (result) => {
+chrome.storage.sync.get(['tweetsPerQuiz', 'removeVideos', 'viewTimeMs'], (result) => {
   if (result.tweetsPerQuiz) {
     tweetsPerQuiz = result.tweetsPerQuiz;
   }
   removeVideosFromFeed = !!result.removeVideos;
+  if (result.viewTimeMs) {
+    requiredViewTimeMs = result.viewTimeMs;
+  }
   applyVideoRemovalSetting();
 });
 
@@ -311,6 +314,9 @@ chrome.storage.onChanged.addListener((changes) => {
   if (changes.removeVideos) {
     removeVideosFromFeed = !!changes.removeVideos.newValue;
     applyVideoRemovalSetting();
+  }
+  if (changes.viewTimeMs) {
+    requiredViewTimeMs = changes.viewTimeMs.newValue;
   }
 });
 
@@ -530,7 +536,7 @@ function handleTweetVisibility(entries) {
           processTweet(tweetElement);
           // Stop observing this tweet
           visibilityObserver.unobserve(tweetElement);
-        }, REQUIRED_VIEW_TIME);
+        }, requiredViewTimeMs);
 
         tweetViewTimers.set(tweetElement, {
           startTime: Date.now(),
@@ -680,7 +686,8 @@ function startObserving() {
     const feedStatus = isOnHomeFeed() ? 'ON HOME FEED' : 'NOT on home feed';
     console.log(`[XQuiz] Initialized - ${feedStatus}`);
     console.log(`[XQuiz] Found ${tweetCount} tweets on page`);
-    console.log(`[XQuiz] Settings: ${tweetsPerQuiz} tweets per quiz, 2s view time required`);
+    const viewSeconds = (requiredViewTimeMs / 1000).toFixed(1).replace(/\.0$/, '');
+    console.log(`[XQuiz] Settings: ${tweetsPerQuiz} tweets per quiz, ${viewSeconds}s view time required`);
   }, 1000);
 
   console.log('[XQuiz] Content script loaded');

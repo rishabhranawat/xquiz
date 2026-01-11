@@ -14,6 +14,8 @@ XQuiz monitors the tweets you scroll past on Twitter/X and periodically generate
 - **Shareable scorecards** - Generate and share your retention stats
 - **Configurable** - Adjust how many tweets trigger a quiz
 - **Video-free mode** - Optional toggle to hide videos from your feed when you want fewer distractions
+- **Quiz history** - Review your most recent quiz questions and clear them whenever you like
+- **Custom attention timer** - Pick how long a tweet must stay visible before it counts as “read”
 
 ## Installation
 

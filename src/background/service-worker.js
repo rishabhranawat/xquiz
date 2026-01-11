@@ -4,6 +4,7 @@ const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/
 
 let quizQueue = [];
 let usedTweetHashes = new Set(); // Track tweets already used in quizzes
+let quizHistory = []; // Persisted log of served quizzes
 let stats = {
   totalQuestions: 0,
   correctAnswers: 0,
@@ -12,12 +13,15 @@ let stats = {
 };
 
 // Load stats and used tweets from storage
-chrome.storage.local.get(['stats', 'usedTweetHashes'], (result) => {
+chrome.storage.local.get(['stats', 'usedTweetHashes', 'quizHistory'], (result) => {
   if (result.stats) {
     stats = result.stats;
   }
   if (result.usedTweetHashes) {
     usedTweetHashes = new Set(result.usedTweetHashes);
+  }
+  if (Array.isArray(result.quizHistory)) {
+    quizHistory = result.quizHistory;
   }
 });
 
@@ -90,6 +94,33 @@ function markTweetsAsUsed(tweets) {
   const hashArray = Array.from(usedTweetHashes).slice(-1000);
   usedTweetHashes = new Set(hashArray);
   chrome.storage.local.set({ usedTweetHashes: hashArray });
+}
+
+function persistQuizHistory() {
+  chrome.storage.local.set({ quizHistory });
+}
+
+function createQuizHistoryEntry(quiz) {
+  const randomId = (globalThis.crypto?.randomUUID && globalThis.crypto.randomUUID()) ||
+    `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  return {
+    id: randomId,
+    timestamp: Date.now(),
+    type: quiz.type,
+    question: quiz.question,
+    options: quiz.options || null,
+    answer: quiz.answer || '',
+    explanation: quiz.explanation || '',
+    tweetCount: quiz.tweetCount || (quiz.tweets?.length ?? 0)
+  };
+}
+
+function addQuizToHistory(quiz) {
+  const entry = createQuizHistoryEntry(quiz);
+  // Keep newest first and limit to last 50 entries.
+  quizHistory.unshift(entry);
+  quizHistory = quizHistory.slice(0, 50);
+  persistQuizHistory();
 }
 
 async function generateQuiz(tweets) {
@@ -223,7 +254,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
     case 'REQUEST_QUIZ':
       if (quizQueue.length > 0) {
-        sendResponse({ quiz: quizQueue.shift() });
+        const quizForPanel = quizQueue.shift();
+        addQuizToHistory(quizForPanel);
+        sendResponse({ quiz: quizForPanel });
       } else {
         sendResponse({ quiz: null, message: 'Keep scrolling! Quiz will appear after reading more tweets.' });
       }
@@ -239,11 +272,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       break;
 
     case 'GET_SETTINGS':
-      chrome.storage.sync.get(['apiKey', 'tweetsPerQuiz', 'removeVideos'], (result) => {
+      chrome.storage.sync.get(['apiKey', 'tweetsPerQuiz', 'removeVideos', 'viewTimeMs'], (result) => {
         sendResponse({
           apiKey: result.apiKey || '',
           tweetsPerQuiz: result.tweetsPerQuiz || 5,
-          removeVideos: result.removeVideos ?? false
+          removeVideos: result.removeVideos ?? false,
+          viewTimeMs: result.viewTimeMs || 2000
         });
       });
       return true;
@@ -252,7 +286,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       chrome.storage.sync.set({
         apiKey: message.apiKey,
         tweetsPerQuiz: message.tweetsPerQuiz,
-        removeVideos: !!message.removeVideos
+        removeVideos: !!message.removeVideos,
+        viewTimeMs: message.viewTimeMs || 2000
       }, () => {
         sendResponse({ success: true });
       });
@@ -273,6 +308,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       // Allow clearing the used tweet history to start fresh
       usedTweetHashes = new Set();
       chrome.storage.local.set({ usedTweetHashes: [] });
+      sendResponse({ success: true });
+      break;
+    case 'GET_QUIZ_HISTORY':
+      sendResponse({ history: quizHistory });
+      break;
+
+    case 'CLEAR_QUIZ_HISTORY':
+      quizHistory = [];
+      persistQuizHistory();
       sendResponse({ success: true });
       break;
 
