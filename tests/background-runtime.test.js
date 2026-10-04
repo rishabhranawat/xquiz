@@ -3,6 +3,7 @@
 
 import assert from 'node:assert/strict';
 import { beforeEach, test } from 'node:test';
+import { dateKey } from '../src/shared/daily-log.js';
 
 let storage;
 let messageListener;
@@ -61,6 +62,22 @@ test('stats persist and concurrent submissions do not race', async () => {
     bestStreak: 2,
   });
   assert.equal((await second.resetStats()).totalQuestions, 0);
+});
+
+test('daily answer log persists, rides along GET_STATS, and legacy stats still load', async () => {
+  storage.stats = { totalQuestions: 10, correctAnswers: 7, currentStreak: 1, bestStreak: 4 };
+  const first = await load('../src/background/stats.js');
+  const day = new Date();
+  await first.submitAnswer(true, day);
+  await first.submitAnswer(false, day);
+
+  const second = await load('../src/background/stats.js'); // restarted worker
+  const response = await second.messageHandlers.GET_STATS();
+  assert.equal(response.stats.totalQuestions, 12);
+  assert.deepEqual(response.dailyLog, { [dateKey(day)]: { answered: 2, correct: 1 } });
+
+  await second.resetStats();
+  assert.deepEqual(await second.getDailyLog(), {});
 });
 
 test('message router always responds, including unknown types and failures', async () => {

@@ -96,6 +96,7 @@ export const STORAGE_KEYS = Object.freeze({
   USED_TWEET_HASHES: 'usedTweetHashes',
   QUIZ_HISTORY: 'quizHistory',
   QUIZ_QUEUE: 'quizQueue',
+  DAILY_LOG: 'dailyLog',
 });
 
 /** Caps that keep persisted state bounded. */
