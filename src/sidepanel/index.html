@@ -183,12 +183,23 @@
 
     <!-- Share Modal -->
     <div class="modal-overlay hidden" id="share-modal">
-      <div class="modal share-modal">
+      <div class="modal share-modal" role="dialog" aria-modal="true" aria-labelledby="share-title">
         <div class="modal-header">
-          <h2>Share Your Score</h2>
-          <button class="close-btn" id="close-share">&times;</button>
+          <h2 id="share-title">Share Your Stats</h2>
+          <button class="close-btn" id="close-share" aria-label="Close share dialog">&times;</button>
         </div>
         <div class="modal-content">
+          <div class="share-options">
+            <div class="seg" role="group" aria-label="Card shape">
+              <button type="button" class="seg-btn" data-share-format="wide" aria-pressed="true">Wide</button>
+              <button type="button" class="seg-btn" data-share-format="square" aria-pressed="false">Square</button>
+            </div>
+            <div class="seg" role="group" aria-label="Card theme">
+              <button type="button" class="seg-btn" data-share-theme="dark" aria-pressed="true">Dark</button>
+              <button type="button" class="seg-btn" data-share-theme="light" aria-pressed="false">Light</button>
+            </div>
+          </div>
+
           <!-- Loading State -->
           <div class="share-loading" id="share-loading">
             <div class="spinner"></div>
@@ -201,16 +212,33 @@
               <img id="scorecard-image" alt="Your XQuiz Scorecard">
             </div>
             <div class="share-actions">
-              <button class="share-action-btn download-btn" id="download-scorecard">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <button type="button" class="share-action-btn download-btn" id="download-scorecard">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                   <polyline points="7 10 12 15 17 10"></polyline>
                   <line x1="12" y1="15" x2="12" y2="3"></line>
                 </svg>
-                Download
+                Download PNG
               </button>
-              <button class="share-action-btn post-btn" id="post-to-x">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <button type="button" class="share-action-btn download-btn" id="copy-scorecard">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <rect x="9" y="9" width="13" height="13" rx="2"></rect>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+                Copy image
+              </button>
+              <button type="button" class="share-action-btn download-btn hidden" id="native-share-scorecard">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <circle cx="18" cy="5" r="3"></circle>
+                  <circle cx="6" cy="12" r="3"></circle>
+                  <circle cx="18" cy="19" r="3"></circle>
+                  <line x1="8.6" y1="13.5" x2="15.4" y2="17.5"></line>
+                  <line x1="15.4" y1="6.5" x2="8.6" y2="10.5"></line>
+                </svg>
+                Share...
+              </button>
+              <button type="button" class="share-action-btn post-btn" id="post-to-x" aria-label="Post on X (copies the image first)">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                   <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
                 </svg>
                 Post on X
@@ -218,10 +246,13 @@
             </div>
           </div>
 
+          <!-- Inline feedback (replaces alert()) -->
+          <p class="share-toast" id="share-toast" role="status" aria-live="polite"></p>
+
           <!-- Error State -->
           <div class="share-error hidden" id="share-error">
             <p id="share-error-text">Failed to generate scorecard</p>
-            <button class="retry-btn" id="retry-share">Try Again</button>
+            <button type="button" class="retry-btn" id="retry-share">Try Again</button>
           </div>
         </div>
       </div>
