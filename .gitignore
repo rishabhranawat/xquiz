@@ -11,6 +11,10 @@
 # Dependencies
 node_modules/
 
+# Build output
+dist/
+dist-safari/
+
 # Build/Package artifacts
 *.zip
 *.crx

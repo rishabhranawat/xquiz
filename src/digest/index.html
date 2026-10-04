@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>XQuiz Daily Digest</title>
+  <link rel="stylesheet" href="digest.css">
+</head>
+<body>
+  <main class="page">
+    <a class="back-link hidden" id="back-link" href="../sidepanel/index.html">&larr; Back to XQuiz</a>
+    <header class="masthead">
+      <div class="brand">
+        <span class="brand-mark">XQuiz</span>
+        <span class="brand-sub">Daily digest</span>
+      </div>
+      <label class="day-picker">
+        <span class="visually-hidden">Choose a day</span>
+        <select id="day-select"></select>
+      </label>
+    </header>
+
+    <section id="digest" class="digest hidden">
+      <p class="eyebrow" id="digest-date"></p>
+      <h1 class="headline">What held your attention</h1>
+      <p class="overview" id="overview"></p>
+
+      <div class="stats">
+        <div class="stat"><span class="stat-value" id="stat-posts"></span><span class="stat-label">posts read</span></div>
+        <div class="stat"><span class="stat-value" id="stat-time"></span><span class="stat-label">time reading</span></div>
+        <div class="stat"><span class="stat-value" id="stat-source"></span><span class="stat-label">summary</span></div>
+      </div>
+
+      <div class="actions">
+        <button class="btn btn-primary" id="copy-btn" type="button">Copy as text</button>
+        <a class="btn" id="email-btn" href="#">Email it to me</a>
+        <button class="btn btn-ghost" id="regenerate-btn" type="button">Regenerate</button>
+        <span class="action-status" id="action-status" role="status"></span>
+      </div>
+
+      <ol class="items" id="items"></ol>
+      <p class="footnote">Ranked by how long you actually spent reading each post, adjusted for its length. Your reading data stays in this browser; only post text is sent to Gemini to write the summary.</p>
+    </section>
+
+    <section id="empty" class="empty hidden">
+      <h1 class="headline" id="empty-title">No digest yet</h1>
+      <p class="overview" id="empty-text"></p>
+      <button class="btn btn-primary" id="generate-btn" type="button">Generate today's digest now</button>
+      <span class="action-status" id="empty-status" role="status"></span>
+    </section>
+  </main>
+  <script src="digest.js"></script>
+</body>
+</html>

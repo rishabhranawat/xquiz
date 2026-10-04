@@ -1,0 +1,168 @@
+/*
+ * Popup layout: the side panel UI reused as a Safari toolbar popup (iPhone,
+ * iPad, macOS). Everything is scoped to .layout-popup (set by sidepanel.js
+ * when the browser has no side panel), so Chrome's side panel is unchanged.
+ * .touch is added when hover is unavailable.
+ */
+
+.layout-popup {
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.layout-popup body {
+  min-width: 320px;
+}
+
+/* iOS popups are as wide as the screen; macOS popups size to their content. */
+@media (hover: hover) {
+  .layout-popup .container {
+    width: 380px;
+  }
+}
+
+.layout-popup .container {
+  max-width: 100%;
+  min-height: 0;
+  padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
+    max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+}
+
+.layout-popup.touch .container,
+.layout-popup.touch body {
+  min-height: 100vh;
+}
+
+.layout-popup.touch .container {
+  max-width: none;
+  width: 100%;
+}
+
+/* Touch targets >= 44px */
+.layout-popup .settings-btn,
+.layout-popup .share-btn,
+.layout-popup .close-btn {
+  min-width: 44px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.layout-popup .option-btn,
+.layout-popup .submit-btn,
+.layout-popup .next-btn,
+.layout-popup .save-btn,
+.layout-popup .reset-btn,
+.layout-popup .retry-btn,
+.layout-popup .share-action-btn,
+.layout-popup .clear-history-btn,
+.layout-popup .seg-btn {
+  min-height: 44px;
+}
+
+.layout-popup .seg-btn {
+  padding-inline: 18px;
+}
+
+.layout-popup .clear-history-btn {
+  padding-inline: 16px;
+}
+
+.layout-popup .option-btn {
+  font-size: 15px;
+}
+
+/* 16px+ so iOS Safari does not zoom the page when an input is focused. */
+.layout-popup input[type='text'],
+.layout-popup input[type='password'],
+.layout-popup input[type='time'],
+.layout-popup input[type='number'],
+.layout-popup select,
+.layout-popup .fill-blank-input {
+  font-size: 16px;
+  min-height: 44px;
+}
+
+.layout-popup .page-option {
+  min-height: 44px;
+}
+
+.layout-popup .page-option input {
+  width: 22px;
+  height: 22px;
+}
+
+/* Bigger switch hit area and range thumb */
+.layout-popup .switch {
+  width: 52px;
+  height: 32px;
+}
+
+.layout-popup .slider:before {
+  height: 24px;
+  width: 24px;
+  left: 3px;
+  bottom: 3px;
+}
+
+.layout-popup .switch input:checked + .slider:before {
+  transform: translateX(20px);
+}
+
+.layout-popup .slider-container input[type='range'] {
+  height: 44px;
+  background: linear-gradient(var(--bg-tertiary), var(--bg-tertiary)) center / 100% 4px no-repeat;
+}
+
+.layout-popup .slider-container input[type='range']::-webkit-slider-thumb {
+  width: 28px;
+  height: 28px;
+}
+
+/* Modals become full-screen sheets that respect the notch and home indicator. */
+.layout-popup .modal-overlay {
+  padding: 0;
+  align-items: stretch;
+}
+
+.layout-popup .modal,
+.layout-popup .share-modal {
+  max-width: none;
+  max-height: none;
+  height: 100%;
+  border-radius: 0;
+  border-width: 0;
+}
+
+.layout-popup .modal-header {
+  padding-top: max(16px, env(safe-area-inset-top));
+  padding-inline: max(20px, env(safe-area-inset-left));
+}
+
+.layout-popup .modal-content {
+  padding-inline: max(20px, env(safe-area-inset-left));
+  -webkit-overflow-scrolling: touch;
+}
+
+.layout-popup .modal-footer {
+  padding-bottom: max(16px, env(safe-area-inset-bottom));
+}
+
+.layout-popup .scorecard-container img {
+  max-height: 38vh;
+}
+
+/* Share: the native sheet is the primary action wherever it exists. */
+.layout-popup .share-actions .native-share-primary {
+  order: -1;
+  flex-basis: 100%;
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  font-weight: 600;
+}
+
+.layout-popup .history-list {
+  max-height: none;
+}
