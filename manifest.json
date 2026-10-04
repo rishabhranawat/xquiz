@@ -14,18 +14,18 @@
     "*://x.com/*"
   ],
   "background": {
-    "service_worker": "src/background/service-worker.js",
+    "service_worker": "background/service-worker.js",
     "type": "module"
   },
   "content_scripts": [
     {
       "matches": ["*://twitter.com/*", "*://x.com/*"],
-      "js": ["src/content/content.js"],
+      "js": ["content/content.js"],
       "run_at": "document_idle"
     }
   ],
   "side_panel": {
-    "default_path": "src/sidepanel/index.html"
+    "default_path": "sidepanel/index.html"
   },
   "action": {
     "default_icon": {

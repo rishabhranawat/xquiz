@@ -47,7 +47,7 @@ async function updateSidePanel(tabId) {
       // Enable the side panel for X/Twitter, allowing it to be opened by the user.
       await chrome.sidePanel.setOptions({
         tabId,
-        path: 'src/sidepanel/index.html',
+        path: 'sidepanel/index.html',
         enabled: true,
       });
       // Notify the content script so it can request an automatic open on user gesture.

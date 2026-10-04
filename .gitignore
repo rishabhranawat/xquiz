@@ -11,6 +11,9 @@
 # Dependencies
 node_modules/
 
+# Build output
+dist/
+
 # Build/Package artifacts
 *.zip
 *.crx
