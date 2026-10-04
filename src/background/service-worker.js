@@ -7,8 +7,7 @@
  * worker staying alive.
  */
 
-import { MESSAGE_TYPES } from '../shared/constants.js';
-import { broadcast, registerMessageRouter } from '../shared/messaging.js';
+import { registerMessageRouter } from '../shared/messaging.js';
 import { messageHandlers as quizGeneratorHandlers } from './quiz-generator.js';
 import { messageHandlers as quizHistoryHandlers } from './quiz-history.js';
 import { messageHandlers as quizQueueHandlers } from './quiz-queue.js';
@@ -27,7 +26,4 @@ registerMessageRouter({
   ...statsHandlers,
   ...settingsHandlers,
   ...sidePanelHandlers,
-  // Relay reading progress from the content script to the side panel.
-  [MESSAGE_TYPES.TWEET_PROGRESS]: ({ current, total }) =>
-    broadcast(MESSAGE_TYPES.TWEET_PROGRESS, { current, total }),
 });

@@ -66,7 +66,6 @@ export const DEFAULT_STATS = Object.freeze({
 export const MESSAGE_TYPES = Object.freeze({
   // Content script -> background
   TWEETS_COLLECTED: 'TWEETS_COLLECTED',
-  TWEET_PROGRESS: 'TWEET_PROGRESS', // also relayed to the side panel
   OPEN_SIDE_PANEL: 'OPEN_SIDE_PANEL',
 
   // Side panel -> background
@@ -79,6 +78,9 @@ export const MESSAGE_TYPES = Object.freeze({
   GET_QUIZ_HISTORY: 'GET_QUIZ_HISTORY',
   CLEAR_QUIZ_HISTORY: 'CLEAR_QUIZ_HISTORY',
   CLEAR_TWEET_HISTORY: 'CLEAR_TWEET_HISTORY',
+
+  // Content script -> side panel (delivered directly; the background ignores it)
+  TWEET_PROGRESS: 'TWEET_PROGRESS',
 
   // Background -> side panel
   QUIZ_READY: 'QUIZ_READY',
