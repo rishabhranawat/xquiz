@@ -149,7 +149,10 @@ async function copyText() {
 }
 
 async function init() {
-  const requested = new URLSearchParams(location.search).get('day');
+  const params = new URLSearchParams(location.search);
+  // Opened inside the Safari popup (no tabs): offer a way back to the quiz.
+  if (params.get('from') === 'popup') $('back-link').classList.remove('hidden');
+  const requested = params.get('day');
   const day = isDayKey(requested) ? requested : localDayKey();
   await loadDays(day);
   await showDay(day);

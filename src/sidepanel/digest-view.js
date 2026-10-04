@@ -5,11 +5,21 @@
 
 import { MESSAGE_TYPES } from '../shared/constants.js';
 import { DIGEST_PAGE_PATH } from '../shared/digest-constants.js';
+import { hasSidePanel, ext } from '../shared/browser.js';
 import { sendMessage } from '../shared/messaging.js';
 import { byId } from './dom.js';
 
+/**
+ * Opens the digest. Chrome: a new tab. Without a side panel (Safari) the
+ * digest opens inside the popup instead: tabs.create from an iOS popup is not
+ * reliable and would dismiss it anyway. The page shows a back link (`from=popup`).
+ */
 function openDigestPage() {
-  ext.tabs.create({ url: ext.runtime.getURL(DIGEST_PAGE_PATH) });
+  if (hasSidePanel()) {
+    ext.tabs.create({ url: ext.runtime.getURL(DIGEST_PAGE_PATH) });
+  } else {
+    window.location.assign(`../${DIGEST_PAGE_PATH}?from=popup`);
+  }
 }
 
 export function createDigestView() {

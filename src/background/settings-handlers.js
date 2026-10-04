@@ -3,6 +3,7 @@
  */
 
 import { MESSAGE_TYPES } from '../shared/constants.js';
+import { ext } from '../shared/browser.js';
 import { logger } from '../shared/logger.js';
 import { loadSettings, migrateStoredSettings, saveSettings } from '../shared/storage.js';
 

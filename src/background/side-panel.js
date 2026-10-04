@@ -30,9 +30,7 @@ async function updateSidePanel(tabId) {
     if (isXUrl(tab.url)) {
       await ext.sidePanel.setOptions({ tabId, path: SIDE_PANEL_PATH, enabled: true });
       // Let the content script request an automatic open on the next user gesture.
-      await ext.tabs
-        .sendMessage(tabId, { type: MESSAGE_TYPES.ENABLE_AUTO_OPEN })
-        .catch(() => {});
+      await ext.tabs.sendMessage(tabId, { type: MESSAGE_TYPES.ENABLE_AUTO_OPEN }).catch(() => {});
     } else {
       await ext.sidePanel.setOptions({ tabId, enabled: false });
     }

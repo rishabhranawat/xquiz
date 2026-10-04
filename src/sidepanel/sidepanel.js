@@ -7,6 +7,7 @@
  */
 
 import { MESSAGE_TYPES } from '../shared/constants.js';
+import { hasSidePanel, isTouchPrimary } from '../shared/browser.js';
 import { listenForMessages, sendMessage } from '../shared/messaging.js';
 import { createEmptyStats } from '../shared/stats.js';
 import { createDigestView } from './digest-view.js';
@@ -16,7 +17,15 @@ import { createSettingsView } from './settings-view.js';
 import { createShareView } from './share-view.js';
 import { createStatsView } from './stats-view.js';
 
+/** No side panel (Safari): this page is the toolbar popup, so use the popup layout. */
+function applyLayout() {
+  const root = document.documentElement;
+  root.classList.toggle('layout-popup', !hasSidePanel());
+  root.classList.toggle('touch', isTouchPrimary());
+}
+
 async function init() {
+  applyLayout();
   const statsView = createStatsView();
   const historyView = createHistoryView();
 
@@ -69,6 +78,7 @@ async function init() {
   statsView.render(statsResponse?.stats ?? createEmptyStats());
 
   await historyView.load();
+  sendMessage(MESSAGE_TYPES.RECONCILE_DIGEST); // build a due digest where alarms are unreliable
   digestView.refreshStatus();
   await fetchAndDisplayQuiz();
 }

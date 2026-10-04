@@ -100,7 +100,9 @@ export function createShareView() {
       el.image.src = image.url;
       el.image.alt = scorecardAltText(model);
       el.image.style.aspectRatio = `${canvas.width} / ${canvas.height}`;
-      setHidden(el.nativeShareButton, !canShareFile(file));
+      const canShare = canShareFile(file);
+      setHidden(el.nativeShareButton, !canShare);
+      el.nativeShareButton.classList.add('native-share-primary');
       setHidden(el.loading, true);
       setHidden(el.error, true);
       setHidden(el.result, false);

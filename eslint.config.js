@@ -2,7 +2,7 @@ import js from '@eslint/js';
 import globals from 'globals';
 
 export default [
-  { ignores: ['dist/', 'node_modules/', 'assets/'] },
+  { ignores: ['dist/', 'dist-safari/', 'safari/XQuizApp/', 'node_modules/', 'assets/'] },
   js.configs.recommended,
   {
     languageOptions: {

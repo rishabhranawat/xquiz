@@ -1,5 +1,7 @@
 dist/
+dist-safari/
 node_modules/
 package-lock.json
 assets/
 *.html
+safari/XQuizApp/

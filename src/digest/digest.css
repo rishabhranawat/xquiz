@@ -352,3 +352,37 @@ select:focus-visible,
     margin-left: 0;
   }
 }
+
+/* Phones and the Safari popup: safe areas, 44px targets, 16px controls (no iOS zoom). */
+.page {
+  padding-left: max(20px, env(safe-area-inset-left));
+  padding-right: max(20px, env(safe-area-inset-right));
+  padding-bottom: max(64px, env(safe-area-inset-bottom));
+}
+
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin-bottom: 8px;
+  color: var(--accent-text);
+  font-size: 15px;
+  text-decoration: none;
+}
+
+@media (hover: none), (max-width: 520px) {
+  select {
+    font-size: 16px;
+    min-height: 44px;
+  }
+
+  .btn {
+    min-height: 44px;
+  }
+
+  .item-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
+}

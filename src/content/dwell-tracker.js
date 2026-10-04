@@ -9,10 +9,7 @@
  */
 
 import { MESSAGE_TYPES } from '../shared/constants.js';
-import {
-  DWELL_FLUSH_INTERVAL_MS,
-  DWELL_IDLE_MS,
-} from '../shared/digest-constants.js';
+import { DWELL_FLUSH_INTERVAL_MS, DWELL_IDLE_MS } from '../shared/digest-constants.js';
 import { logger } from '../shared/logger.js';
 import { isExtensionValid, sendMessage } from '../shared/messaging.js';
 import { VISIBILITY_THRESHOLDS, isEntryVisible } from '../shared/visibility.js';
