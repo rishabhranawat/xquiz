@@ -6,7 +6,7 @@
 //
 // Set XQUIZ_DEBUG=1 to enable debug logging in a one-off build.
 
-import { cp, mkdir, rm } from 'node:fs/promises';
+import { access, cp, mkdir, readFile, rm } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import * as esbuild from 'esbuild';
@@ -66,6 +66,29 @@ function bundleOptions({ format, entryPoints }) {
   };
 }
 
+/** Fails the build if manifest.json points at a file that is not in dist/. */
+async function verifyManifestPaths() {
+  const manifest = JSON.parse(await readFile(path.join(dist, 'manifest.json'), 'utf8'));
+  const referenced = [
+    manifest.background?.service_worker,
+    manifest.side_panel?.default_path,
+    ...(manifest.content_scripts ?? []).flatMap((entry) => [
+      ...(entry.js ?? []),
+      ...(entry.css ?? []),
+    ]),
+    ...Object.values(manifest.icons ?? {}),
+    ...Object.values(manifest.action?.default_icon ?? {}),
+  ].filter(Boolean);
+
+  const missing = [];
+  for (const file of referenced) {
+    await access(path.join(dist, file)).catch(() => missing.push(file));
+  }
+  if (missing.length) {
+    throw new Error(`manifest.json references files missing from dist/: ${missing.join(', ')}`);
+  }
+}
+
 await rm(dist, { recursive: true, force: true });
 await copyStaticFiles();
 
@@ -77,5 +100,6 @@ if (watch) {
   console.log('Watching for changes (static files are copied once; rerun to refresh them)...');
 } else {
   await Promise.all(BUNDLES.map((bundle) => esbuild.build(bundleOptions(bundle))));
+  await verifyManifestPaths();
   console.log(`Built extension into ${path.relative(root, dist)}/`);
 }

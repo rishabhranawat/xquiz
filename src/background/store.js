@@ -44,8 +44,8 @@ export function createStore(key, createDefault, normalize = (raw) => raw ?? crea
    * @param {(current: T) => T} change
    */
   async function update(change) {
-    const current = await get();
-    return set(change(current));
+    await get(); // ensure loaded; then read the cache, which earlier updates may have replaced
+    return set(change(cache));
   }
 
   return { get, set, update };
