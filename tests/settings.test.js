@@ -19,6 +19,9 @@ test('normalizeSettings keeps valid values', () => {
     hideImageOnly: true,
     viewTimeMs: 4000,
     allowedPages: ['home', 'profiles'],
+    digestEnabled: true,
+    digestPaused: true,
+    digestTime: '08:30',
   };
   assert.deepEqual(normalizeSettings(settings), settings);
 });
@@ -108,4 +111,19 @@ test('normalizeSettings migrates legacy removeVideos and drops the key', () => {
   assert.equal(migrated.hideImageOnly, false);
   assert.equal('removeVideos' in migrated, false);
   assert.equal(normalizeSettings({ removeVideos: false }).distractionMode, false);
+});
+
+test('digest settings default to off, not paused and 9 PM', () => {
+  const settings = normalizeSettings({});
+  assert.equal(settings.digestEnabled, false);
+  assert.equal(settings.digestPaused, false);
+  assert.equal(settings.digestTime, '21:00');
+});
+
+test('normalizeSettings validates and pads the digest time', () => {
+  assert.equal(normalizeSettings({ digestTime: '7:05' }).digestTime, '07:05');
+  assert.equal(normalizeSettings({ digestTime: ' 23:59 ' }).digestTime, '23:59');
+  for (const bad of ['24:00', '12:60', 'noon', '', 7, null]) {
+    assert.equal(normalizeSettings({ digestTime: bad }).digestTime, '21:00');
+  }
 });

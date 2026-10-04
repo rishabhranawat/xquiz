@@ -9,6 +9,7 @@
 import { MESSAGE_TYPES } from '../shared/constants.js';
 import { listenForMessages, sendMessage } from '../shared/messaging.js';
 import { createEmptyStats } from '../shared/stats.js';
+import { createDigestView } from './digest-view.js';
 import { createHistoryView } from './history-view.js';
 import { createQuizView } from './quiz-view.js';
 import { createSettingsView } from './settings-view.js';
@@ -37,6 +38,7 @@ async function init() {
   });
 
   createShareView();
+  const digestView = createDigestView();
 
   /** Pulls the next queued quiz (if any) into the panel. */
   async function fetchAndDisplayQuiz() {
@@ -67,6 +69,7 @@ async function init() {
   statsView.render(statsResponse?.stats ?? createEmptyStats());
 
   await historyView.load();
+  digestView.refreshStatus();
   await fetchAndDisplayQuiz();
 }
 

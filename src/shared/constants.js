@@ -22,6 +22,10 @@ export const DEFAULT_SETTINGS = Object.freeze({
   hideImageOnly: true,
   viewTimeMs: 2000,
   allowedPages: Object.freeze([PAGE_IDS.HOME]),
+  // Daily digest (see src/shared/digest-constants.js). Reading is never tracked until enabled.
+  digestEnabled: false,
+  digestPaused: false,
+  digestTime: '21:00',
 });
 
 /** Allowed ranges for numeric settings (mirrors the settings sliders). */
@@ -41,6 +45,9 @@ export const SYNC_SETTING_KEYS = Object.freeze([
   'hideImageOnly',
   'viewTimeMs',
   'allowedPages',
+  'digestEnabled',
+  'digestPaused',
+  'digestTime',
 ]);
 
 /**
@@ -89,6 +96,14 @@ export const MESSAGE_TYPES = Object.freeze({
   CLEAR_QUIZ_HISTORY: 'CLEAR_QUIZ_HISTORY',
   CLEAR_TWEET_HISTORY: 'CLEAR_TWEET_HISTORY',
 
+  // Daily digest: content script -> background, and side panel / digest page -> background
+  READING_BATCH: 'READING_BATCH',
+  GET_DIGEST: 'GET_DIGEST',
+  LIST_DIGEST_DAYS: 'LIST_DIGEST_DAYS',
+  GENERATE_DIGEST: 'GENERATE_DIGEST',
+  CLEAR_READING_DATA: 'CLEAR_READING_DATA',
+  GET_READING_STATUS: 'GET_READING_STATUS',
+
   // Content script -> side panel (delivered directly; the background ignores it)
   TWEET_PROGRESS: 'TWEET_PROGRESS',
 
@@ -107,6 +122,8 @@ export const STORAGE_KEYS = Object.freeze({
   QUIZ_HISTORY: 'quizHistory',
   QUIZ_QUEUE: 'quizQueue',
   DAILY_LOG: 'dailyLog',
+  READING_LOG: 'readingLog',
+  DIGESTS: 'digests',
 });
 
 /** Caps that keep persisted state bounded. */

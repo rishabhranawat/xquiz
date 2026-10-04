@@ -15,6 +15,7 @@ import { loadSyncedSettings, onSyncedSettingsChanged } from '../shared/storage.j
 import { createAttentionTracker } from './attention-tracker.js';
 import { createAutoOpen } from './auto-open.js';
 import { createDistractionFilter, isPostHidden } from './distraction.js';
+import { createDwellTracker } from './dwell-tracker.js';
 import { isOnTrackedPage, watchNavigation } from './page-tracker.js';
 import {
   createStatusIndicator,
@@ -44,6 +45,7 @@ let isActive = false;
 const collector = createTweetCollector();
 const distraction = createDistractionFilter({ onCountChange: () => refreshStatus() });
 const autoOpen = createAutoOpen();
+const readingTracker = createDwellTracker(); // daily digest; off until the user opts in
 const attention = createAttentionTracker({
   isActive: () => isActive,
   getRequiredViewMs: () => settings.viewTimeMs,
@@ -153,6 +155,7 @@ function applySettings(newSettings) {
   settings = newSettings;
   distraction.apply(settings);
   if (isExtensionValid() && document.body) {
+    readingTracker.configure(settings);
     refreshActiveState();
     updateStatusIndicator(statusState());
   }
@@ -168,6 +171,7 @@ async function init() {
   });
   distraction.apply(settings);
   onSyncedSettingsChanged(applySettings);
+  readingTracker.configure(settings);
 
   createStatusIndicator(settings.tweetsPerQuiz);
   domObserver.observe(document.querySelector('main') || document.body, {

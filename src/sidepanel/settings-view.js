@@ -30,6 +30,9 @@ export function createSettingsView({ onSaved, onStatsReset }) {
     hideImageOnly: byId('hide-image-only-toggle'),
     resetStats: byId('reset-stats'),
     clearTweetHistory: byId('clear-history'),
+    digestEnabled: byId('digest-enabled-toggle'),
+    digestPaused: byId('digest-paused-toggle'),
+    digestTime: byId('digest-time'),
   };
   const pageCheckboxes = [...document.querySelectorAll('[data-track-page]')];
 
@@ -52,6 +55,9 @@ export function createSettingsView({ onSaved, onStatsReset }) {
     el.hideVideos.checked = settings.hideVideos;
     el.hideImageOnly.checked = settings.hideImageOnly;
     syncDistractionOptions();
+    el.digestEnabled.checked = settings.digestEnabled;
+    el.digestPaused.checked = settings.digestPaused;
+    el.digestTime.value = settings.digestTime;
     pageCheckboxes.forEach((checkbox) => {
       checkbox.checked = settings.allowedPages.includes(checkbox.value);
     });
@@ -74,6 +80,9 @@ export function createSettingsView({ onSaved, onStatsReset }) {
       distractionMode: el.distractionMode.checked,
       hideVideos: el.hideVideos.checked,
       hideImageOnly: el.hideImageOnly.checked,
+      digestEnabled: el.digestEnabled.checked,
+      digestPaused: el.digestPaused.checked,
+      digestTime: el.digestTime.value,
       allowedPages,
     });
   }

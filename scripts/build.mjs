@@ -22,6 +22,8 @@ const STATIC_FILES = [
   ['icons', 'icons'],
   ['src/sidepanel/index.html', 'sidepanel/index.html'],
   ['src/sidepanel/styles.css', 'sidepanel/styles.css'],
+  ['src/digest/index.html', 'digest/index.html'],
+  ['src/digest/digest.css', 'digest/digest.css'],
 ];
 
 /**
@@ -39,6 +41,7 @@ const BUNDLES = [
     entryPoints: {
       'content/content': 'src/content/content.js',
       'sidepanel/sidepanel': 'src/sidepanel/sidepanel.js',
+      'digest/digest': 'src/digest/digest.js',
     },
   },
 ];

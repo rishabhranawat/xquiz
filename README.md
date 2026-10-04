@@ -27,6 +27,15 @@ XQuiz monitors the tweets you scroll past on Twitter/X and periodically generate
 - **Custom attention timer** - Pick how long a tweet must stay visible before it counts as “read”
 - **Track specific pages** - Decide whether quizzes should monitor only the home feed or additional sections like user profiles
 
+## Daily reading digest
+
+Optional and **off by default** (Settings > Daily digest > "Track my reading for the daily digest").
+
+- While enabled, XQuiz records how long each post is on screen (at least 60% visible, tab visible and focused, no 30s of inactivity; no hover needed). Posts with under 1.5s of attention are ignored and ads are skipped.
+- Reading data is stored only in `chrome.storage.local` in this browser, capped at ~500 posts per day and kept for 7 days. You can pause tracking or clear all reading data and digests at any time.
+- At your chosen time (default 9:00 PM) XQuiz ranks the day's posts by inferred intent (dwell time relative to expected reading time at ~238 wpm, with a bonus for revisits) and builds a digest of the top 10, delivered as a notification that opens the digest page (past 7 days available, with "Copy as text" and "Email it to me").
+- **Privacy:** reading data never leaves the browser, except that the text of the top 10 posts is sent to Gemini (with your own API key) to write the summary. Without a key, or if the call fails, a plain digest is built locally.
+
 ## Security considerations
 
 - Your Gemini API key is stored only in Chrome's local storage (never synced to the cloud) and is only accessible from trusted extension surfaces.
