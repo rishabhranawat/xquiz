@@ -14,7 +14,7 @@ XQuiz ships to Safari as a **Safari Web Extension**: the same JavaScript as the 
 | Background          | Module service worker                     | Classic non-persistent script (single IIFE bundle). iOS unloads it often; all state is persisted already    |
 | Permissions         | storage, alarms, sidePanel, notifications | storage, alarms. Host access to x.com / twitter.com must be granted by the user in Safari                   |
 
-The Safari manifest is generated from `manifest.json` by `toSafariManifest()` in `scripts/manifest.mjs` (unit tested). Do not edit it by hand.
+The Safari manifest is generated from `src/manifest.json` by `toSafariManifest()` in `scripts/manifest.mjs` (unit tested). Do not edit it by hand.
 
 ## Prerequisites
 

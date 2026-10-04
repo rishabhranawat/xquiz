@@ -134,7 +134,7 @@ export const LIMITS = Object.freeze({
   MAX_QUEUED_QUIZZES: 20,
 });
 
-/** Hostnames the extension runs on (keep in sync with manifest.json). */
+/** Hostnames the extension runs on (keep in sync with src/manifest.json). */
 export const X_HOSTNAMES = Object.freeze(['x.com', 'twitter.com']);
 
 /** First path segments on X that are application routes, not user handles. */

@@ -1,5 +1,5 @@
 // Pure manifest transformations (no I/O) so they can be unit tested.
-// The repo's manifest.json is the Chrome manifest; other targets are derived
+// The repo's src/manifest.json is the Chrome manifest; other targets are derived
 // from it by the functions here instead of maintaining a second copy.
 
 /** Permissions Safari web extensions do not implement. */

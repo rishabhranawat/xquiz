@@ -26,7 +26,7 @@ const debug = watch || process.env.XQUIZ_DEBUG === '1';
 
 /** Files copied verbatim into dist/ (source path relative to the repo root). */
 const STATIC_FILES = [
-  ['manifest.json', 'manifest.json'],
+  ['src/manifest.json', 'manifest.json'],
   ['icons', 'icons'],
   ['src/sidepanel/index.html', 'sidepanel/index.html'],
   ['src/sidepanel/styles.css', 'sidepanel/styles.css'],
@@ -37,7 +37,7 @@ const STATIC_FILES = [
 
 /**
  * Bundle entry points. The key is the output path inside dist/ (without
- * extension) and must match the paths referenced by manifest.json.
+ * extension) and must match the paths referenced by src/manifest.json.
  * Background runs as an ES module; content script and side panel are IIFEs.
  */
 const BUNDLES = [
@@ -63,7 +63,7 @@ async function copyStaticFiles() {
     await cp(path.join(root, from), destination, { recursive: true });
   }
   if (isSafari) {
-    const base = JSON.parse(await readFile(path.join(root, 'manifest.json'), 'utf8'));
+    const base = JSON.parse(await readFile(path.join(root, 'src/manifest.json'), 'utf8'));
     await writeFile(
       path.join(dist, 'manifest.json'),
       `${JSON.stringify(toSafariManifest(base), null, 2)}\n`

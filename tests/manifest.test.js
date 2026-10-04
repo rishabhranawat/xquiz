@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { test } from 'node:test';
 import { referencedFiles, toSafariManifest } from '../scripts/manifest.mjs';
 
-const chromeManifest = JSON.parse(await readFile(new URL('../manifest.json', import.meta.url)));
+const chromeManifest = JSON.parse(await readFile(new URL('../src/manifest.json', import.meta.url)));
 const safari = toSafariManifest(chromeManifest);
 
 test('does not mutate the Chrome manifest', () => {

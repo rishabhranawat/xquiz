@@ -40,7 +40,7 @@ Optional and **off by default** (Settings > Daily digest > "Track my reading for
 
 ## Safari (iPhone, iPad, Mac)
 
-`npm run build:safari` builds a Safari Web Extension into `dist-safari/` from the same sources (`--target=safari` in `scripts/build.mjs`; the manifest is derived from `manifest.json` by `scripts/manifest.mjs`). On Safari:
+`npm run build:safari` builds a Safari Web Extension into `dist-safari/` from the same sources (`--target=safari` in `scripts/build.mjs`; the manifest is derived from `src/manifest.json` by `scripts/manifest.mjs`). On Safari:
 
 - The UI is the toolbar popup (iPhone: **aA** menu > XQuiz) instead of a side panel; it is the side panel page with a `layout-popup` layout (full width, 44px touch targets, 16px inputs, safe-area insets).
 - With no hover on touch devices, a tweet counts as read once at least 60% of it (or 60% of the viewport for tall posts) has been on screen with the page visible for your configured time. Desktop hover behaviour is unchanged.
@@ -57,7 +57,7 @@ Optional and **off by default** (Settings > Daily digest > "Track my reading for
 
 ## Installation
 
-XQuiz is built with [esbuild](https://esbuild.github.io/), so the extension is loaded from the generated `dist/` folder rather than the repository root.
+XQuiz is built with [esbuild](https://esbuild.github.io/), so the extension is loaded from the generated `dist/` folder rather than the repository root (the repo root has no `manifest.json` on purpose, so loading it fails with "Manifest file is missing" instead of a confusing script error).
 
 1. Clone this repository and run `npm install`
 2. Run `npm run build`
@@ -86,7 +86,6 @@ After code changes, run `npm run build` again (or keep `npm run watch` running) 
 
 ```
 xquiz/
-├── manifest.json               # Chrome manifest (paths relative to dist/); Safari's is derived from it
 ├── PRIVACY.md                  # Privacy policy (store listings)
 ├── docs/store-listing.md       # Chrome Web Store listing text and permission justifications
 ├── safari/                     # Safari/Xcode instructions (README.md); generated XQuizApp/ lands here
@@ -97,6 +96,7 @@ xquiz/
 │   ├── safari-convert.sh       # macOS: build + xcrun safari-web-extension-converter
 │   └── package.mjs             # Builds and zips dist/ for the Chrome Web Store
 ├── src/
+│   ├── manifest.json           # Chrome manifest (paths relative to dist/); Safari's is derived from it
 │   ├── shared/                 # Used by every context; no DOM, tiny chrome surface
 │   │   ├── constants.js        # Message types, defaults, storage keys, limits
 │   │   ├── browser.js          # Platform shim: browser/chrome namespace + feature detection
