@@ -14,6 +14,7 @@ import { normalizeSettings } from '../shared/settings.js';
 import { loadSyncedSettings, onSyncedSettingsChanged } from '../shared/storage.js';
 import { createAttentionTracker } from './attention-tracker.js';
 import { createAutoOpen } from './auto-open.js';
+import { createDwellTracker } from './dwell-tracker.js';
 import { setVideosHidden, tweetContainsVideo } from './distraction.js';
 import { isOnTrackedPage, watchNavigation } from './page-tracker.js';
 import {
@@ -41,6 +42,7 @@ let isActive = false;
 
 const collector = createTweetCollector();
 const autoOpen = createAutoOpen();
+const readingTracker = createDwellTracker(); // daily digest; off until the user opts in
 const attention = createAttentionTracker({
   isActive: () => isActive,
   getRequiredViewMs: () => settings.viewTimeMs,
@@ -130,6 +132,7 @@ function applySettings(newSettings) {
   settings = newSettings;
   setVideosHidden(settings.removeVideos);
   if (isExtensionValid() && document.body) {
+    readingTracker.configure(settings);
     refreshActiveState();
     updateStatusIndicator(statusState());
   }
@@ -145,6 +148,7 @@ async function init() {
   });
   setVideosHidden(settings.removeVideos);
   onSyncedSettingsChanged(applySettings);
+  readingTracker.configure(settings);
 
   createStatusIndicator(settings.tweetsPerQuiz);
   domObserver.observe(document.querySelector('main') || document.body, {

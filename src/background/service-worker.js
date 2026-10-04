@@ -8,15 +8,18 @@
  */
 
 import { registerMessageRouter } from '../shared/messaging.js';
+import { messageHandlers as digestHandlers, registerDigest } from './digest.js';
 import { messageHandlers as quizGeneratorHandlers } from './quiz-generator.js';
 import { messageHandlers as quizHistoryHandlers } from './quiz-history.js';
 import { messageHandlers as quizQueueHandlers } from './quiz-queue.js';
+import { messageHandlers as readingHandlers } from './reading-store.js';
 import { messageHandlers as settingsHandlers } from './settings-handlers.js';
 import { messageHandlers as sidePanelHandlers, registerSidePanel } from './side-panel.js';
 import { messageHandlers as statsHandlers } from './stats.js';
 import { messageHandlers as tweetHistoryHandlers } from './tweet-history.js';
 
 registerSidePanel();
+registerDigest();
 
 registerMessageRouter({
   ...quizGeneratorHandlers,
@@ -26,4 +29,6 @@ registerMessageRouter({
   ...statsHandlers,
   ...settingsHandlers,
   ...sidePanelHandlers,
+  ...readingHandlers,
+  ...digestHandlers,
 });

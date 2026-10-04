@@ -3,7 +3,8 @@
  * the TWEETS_COLLECTED message that kicks the whole flow off.
  */
 
-import { GEMINI_API_URL, MESSAGE_TYPES } from '../shared/constants.js';
+import { MESSAGE_TYPES } from '../shared/constants.js';
+import { requestGeminiText } from '../shared/gemini.js';
 import { logger } from '../shared/logger.js';
 import { broadcast } from '../shared/messaging.js';
 import { loadSettings } from '../shared/storage.js';
@@ -52,39 +53,6 @@ Respond ONLY with valid JSON in this exact format (no markdown, no code blocks):
 
 For true_false, options should be ["True", "False"].
 For fill_blank, options should be null.`;
-}
-
-/**
- * Calls Gemini and returns the raw text of the first candidate. The API key
- * travels in a header, never in the URL, so it cannot leak into logs or
- * error messages.
- * @param {string} apiKey
- * @param {string} prompt
- * @returns {Promise<string>}
- */
-async function requestGeminiText(apiKey, prompt) {
-  const response = await fetch(GEMINI_API_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
-    body: JSON.stringify({
-      contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: {
-        temperature: 0.7,
-        maxOutputTokens: 500,
-        responseMimeType: 'application/json',
-      },
-    }),
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => null);
-    throw new Error(errorData?.error?.message || 'API request failed');
-  }
-
-  const data = await response.json();
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!text) throw new Error('No content in response');
-  return text;
 }
 
 /**

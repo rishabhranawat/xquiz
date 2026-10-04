@@ -3,7 +3,7 @@
   "name": "XQuiz",
   "version": "1.0.0",
   "description": "Test your attention and retention while scrolling Twitter/X",
-  "permissions": ["sidePanel", "storage"],
+  "permissions": ["sidePanel", "storage", "alarms", "notifications"],
   "host_permissions": ["*://twitter.com/*", "*://x.com/*"],
   "background": {
     "service_worker": "background/service-worker.js",

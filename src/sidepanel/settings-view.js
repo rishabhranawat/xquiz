@@ -27,6 +27,9 @@ export function createSettingsView({ onSaved, onStatsReset }) {
     removeVideos: byId('remove-videos-toggle'),
     resetStats: byId('reset-stats'),
     clearTweetHistory: byId('clear-history'),
+    digestEnabled: byId('digest-enabled-toggle'),
+    digestPaused: byId('digest-paused-toggle'),
+    digestTime: byId('digest-time'),
   };
   const pageCheckboxes = [...document.querySelectorAll('[data-track-page]')];
 
@@ -42,6 +45,9 @@ export function createSettingsView({ onSaved, onStatsReset }) {
     el.viewTimeSlider.value = seconds;
     el.viewTimeValue.textContent = `${seconds}s`;
     el.removeVideos.checked = settings.removeVideos;
+    el.digestEnabled.checked = settings.digestEnabled;
+    el.digestPaused.checked = settings.digestPaused;
+    el.digestTime.value = settings.digestTime;
     pageCheckboxes.forEach((checkbox) => {
       checkbox.checked = settings.allowedPages.includes(checkbox.value);
     });
@@ -62,6 +68,9 @@ export function createSettingsView({ onSaved, onStatsReset }) {
       tweetsPerQuiz: parseInt(el.tweetsSlider.value, 10),
       viewTimeMs: parseInt(el.viewTimeSlider.value, 10) * 1000,
       removeVideos: el.removeVideos.checked,
+      digestEnabled: el.digestEnabled.checked,
+      digestPaused: el.digestPaused.checked,
+      digestTime: el.digestTime.value,
       allowedPages,
     });
   }
