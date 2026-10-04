@@ -1,31 +1,43 @@
 /**
- * Share modal: renders a scorecard from the current stats and lets the user
- * download it or post it to X.
+ * Share modal: renders the "recent stats" scorecard and offers download,
+ * clipboard, native share and Post-on-X actions. Feedback is shown as inline
+ * toast text (never alert()).
  */
 
-import { DEFAULT_STATS, MESSAGE_TYPES } from '../shared/constants.js';
+import { dateKey } from '../shared/daily-log.js';
+import { MESSAGE_TYPES } from '../shared/constants.js';
 import { logger } from '../shared/logger.js';
 import { sendMessage } from '../shared/messaging.js';
-import { accuracyPercent } from '../shared/stats.js';
+import { buildIntentUrl, buildScorecardModel, buildShareText } from '../shared/scorecard-model.js';
+import { createEmptyStats, normalizeStats } from '../shared/stats.js';
 import { byId, setHidden } from './dom.js';
-import { renderScorecard } from './scorecard.js';
+import { canvasToBlob, renderScorecardCanvas } from './scorecard.js';
+import { DEFAULT_FORMAT } from './scorecard-layout.js';
 
-const RENDER_DELAY_MS = 500; // brief loading state, purely for UX
+const TOAST_MS = 7000;
+const PREFS_KEY = 'xquiz.sharePrefs';
+const FOCUSABLE = 'button:not([disabled]):not(.hidden), [href], input, select, [tabindex="-1"]';
 
-/**
- * Text pre-filled when sharing to X.
- * @param {{accuracy: number, streak: number}} stats
- */
-export function buildShareText({ accuracy, streak }) {
-  return `🧠 Testing my attention span on X with XQuiz!
-
-📊 ${accuracy}% retention accuracy
-🔥 ${streak} question streak
-
-Are you actually reading your feed or just scrolling? Find out 👇`;
+/** Remembered format/theme choice; storage may be unavailable, so never throw. */
+function loadPrefs() {
+  try {
+    const prefs = JSON.parse(localStorage.getItem(PREFS_KEY) ?? '{}');
+    return {
+      format: prefs.format === 'square' ? 'square' : DEFAULT_FORMAT,
+      theme: prefs.theme === 'light' ? 'light' : 'dark',
+    };
+  } catch {
+    return { format: DEFAULT_FORMAT, theme: 'dark' };
+  }
 }
 
-const dataUrlToBlob = async (dataUrl) => (await fetch(dataUrl)).blob();
+function savePrefs(prefs) {
+  try {
+    localStorage.setItem(PREFS_KEY, JSON.stringify(prefs));
+  } catch {
+    // Persisting the choice is a nicety only.
+  }
+}
 
 export function createShareView() {
   const el = {
@@ -36,90 +48,237 @@ export function createShareView() {
     result: byId('share-result'),
     error: byId('share-error'),
     errorText: byId('share-error-text'),
-    image: byId('scorecard-image'),
+    image: /** @type {HTMLImageElement} */ (byId('scorecard-image')),
     downloadButton: byId('download-scorecard'),
+    copyButton: byId('copy-scorecard'),
+    nativeShareButton: byId('native-share-scorecard'),
     postButton: byId('post-to-x'),
     retryButton: byId('retry-share'),
+    toast: byId('share-toast'),
   };
+  const formatButtons = [...el.modal.querySelectorAll('[data-share-format]')];
+  const themeButtons = [...el.modal.querySelectorAll('[data-share-theme]')];
 
-  /** @type {{dataUrl: string, accuracy: number, streak: number} | null} */
-  let scorecard = null;
+  const prefs = loadPrefs();
+  /** @type {import('../shared/scorecard-model.js').ScorecardModel | null} */
+  let model = null;
+  /** @type {{blob: Blob, url: string, file: File} | null} */
+  let image = null;
+  let renderToken = 0;
+  let toastTimer = 0;
+  /** @type {Element | null} */
+  let returnFocusTo = null;
 
+  const isOpen = () => !el.modal.classList.contains('hidden');
+
+  function toast(message) {
+    clearTimeout(toastTimer);
+    el.toast.textContent = message;
+    if (message) toastTimer = setTimeout(() => (el.toast.textContent = ''), TOAST_MS);
+  }
+
+  function syncOptionButtons() {
+    for (const button of formatButtons) {
+      button.setAttribute('aria-pressed', String(button.dataset.shareFormat === prefs.format));
+    }
+    for (const button of themeButtons) {
+      button.setAttribute('aria-pressed', String(button.dataset.shareTheme === prefs.theme));
+    }
+  }
+
+  /** Re-renders the canvas for the current model/format/theme. */
+  async function render() {
+    if (!model) return;
+    const token = ++renderToken;
+    try {
+      const canvas = renderScorecardCanvas(model, prefs);
+      const blob = await canvasToBlob(canvas);
+      if (token !== renderToken) return; // a newer render superseded this one
+      if (image) URL.revokeObjectURL(image.url);
+      const file = new File([blob], 'xquiz-scorecard.png', { type: 'image/png' });
+      image = { blob, file, url: URL.createObjectURL(blob) };
+      el.image.src = image.url;
+      el.image.alt = scorecardAltText(model);
+      el.image.style.aspectRatio = `${canvas.width} / ${canvas.height}`;
+      setHidden(el.nativeShareButton, !canShareFile(file));
+      setHidden(el.loading, true);
+      setHidden(el.error, true);
+      setHidden(el.result, false);
+    } catch (error) {
+      showError(error);
+    }
+  }
+
+  function showError(error) {
+    logger.debug('Scorecard failed:', error);
+    setHidden(el.loading, true);
+    setHidden(el.result, true);
+    setHidden(el.error, false);
+    el.errorText.textContent = error?.message || 'Failed to generate scorecard';
+  }
+
+  /** Loads fresh stats, builds the model and renders. */
   async function generate() {
     setHidden(el.loading, false);
     setHidden(el.result, true);
     setHidden(el.error, true);
-
-    const response = await sendMessage(MESSAGE_TYPES.GET_STATS, {}, { stats: DEFAULT_STATS });
-    const stats = response.stats || DEFAULT_STATS;
-    const accuracy = accuracyPercent(stats) ?? 0;
-
+    toast('');
     try {
-      const dataUrl = renderScorecard({
-        accuracy,
-        streak: stats.currentStreak,
-        bestStreak: stats.bestStreak,
+      const response = await sendMessage(MESSAGE_TYPES.GET_STATS, {}, {});
+      model = buildScorecardModel({
+        stats: response?.stats ? normalizeStats(response.stats) : createEmptyStats(),
+        dailyLog: response?.dailyLog ?? {},
       });
-      await new Promise((resolve) => setTimeout(resolve, RENDER_DELAY_MS));
-
-      scorecard = { dataUrl, accuracy, streak: stats.currentStreak };
-      el.image.src = dataUrl;
-      setHidden(el.loading, true);
-      setHidden(el.result, false);
+      await render();
     } catch (error) {
-      setHidden(el.loading, true);
-      setHidden(el.error, false);
-      el.errorText.textContent = error.message;
+      showError(error);
     }
   }
 
   function download() {
-    if (!scorecard) return;
+    if (!image || !model) return;
     const link = document.createElement('a');
-    link.href = scorecard.dataUrl;
-    link.download = `xquiz-scorecard-${Date.now()}.png`;
+    link.href = image.url;
+    link.download = `xquiz-scorecard-${prefs.format}-${dateKey(new Date())}.png`;
     link.click();
+    toast('Scorecard downloaded as PNG.');
   }
 
-  /** Shares via the Web Share API when possible, else copies the image and opens X. */
+  /**
+   * Copies the PNG to the clipboard.
+   * @returns {Promise<boolean>} whether the image was copied.
+   */
+  async function copyImage() {
+    if (!image) return false;
+    if (!navigator.clipboard?.write || typeof ClipboardItem === 'undefined') return false;
+    try {
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': image.blob })]);
+      return true;
+    } catch (error) {
+      logger.debug('Could not copy to clipboard:', error);
+      return false;
+    }
+  }
+
+  async function copy() {
+    toast(
+      (await copyImage())
+        ? 'Image copied to clipboard.'
+        : 'Copying images is not supported here. Use Download PNG instead.'
+    );
+  }
+
+  async function nativeShare() {
+    if (!image || !model) return;
+    try {
+      await navigator.share({ text: buildShareText(model), files: [image.file] });
+      toast('Shared.');
+    } catch (error) {
+      if (error?.name === 'AbortError') return; // user dismissed the share sheet
+      logger.debug('Web Share failed:', error);
+      toast('Sharing failed. Try Download PNG or Copy image instead.');
+    }
+  }
+
+  /** X intents cannot carry images, so copy the image first and say so. */
   async function postToX() {
-    const text = buildShareText(scorecard ?? { accuracy: 0, streak: 0 });
-
-    if (navigator.share && navigator.canShare && scorecard) {
-      try {
-        const blob = await dataUrlToBlob(scorecard.dataUrl);
-        const file = new File([blob], 'xquiz-scorecard.png', { type: 'image/png' });
-        if (navigator.canShare({ files: [file] })) {
-          await navigator.share({ text, files: [file] });
-          return;
-        }
-      } catch (error) {
-        logger.debug('Web Share failed, falling back to intent URL:', error);
-      }
-    }
-
-    if (scorecard) {
-      try {
-        const blob = await dataUrlToBlob(scorecard.dataUrl);
-        await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
-        alert('Scorecard copied to clipboard! Paste it into your tweet.');
-      } catch (error) {
-        logger.debug('Could not copy to clipboard:', error);
-      }
-    }
-
-    window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`, '_blank');
+    if (!model) return;
+    const copied = await copyImage();
+    toast(
+      copied
+        ? 'Image copied. Paste it into your post (X cannot attach images automatically).'
+        : 'Could not copy the image. Download it and attach it to your post.'
+    );
+    window.open(buildIntentUrl(buildShareText(model)), '_blank', 'noopener,noreferrer');
   }
 
-  el.openButton.addEventListener('click', () => {
+  function open() {
+    returnFocusTo = document.activeElement;
     setHidden(el.modal, false);
+    syncOptionButtons();
+    formatButtons.find((b) => b.getAttribute('aria-pressed') === 'true')?.focus();
     generate();
-  });
-  el.closeButton.addEventListener('click', () => setHidden(el.modal, true));
+  }
+
+  function close() {
+    if (!isOpen()) return;
+    setHidden(el.modal, true);
+    renderToken++;
+    toast('');
+    if (image) URL.revokeObjectURL(image.url);
+    image = null;
+    if (returnFocusTo instanceof HTMLElement) returnFocusTo.focus();
+  }
+
+  /** Escape closes; Tab stays inside the dialog. */
+  function onKeydown(event) {
+    if (!isOpen()) return;
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      event.stopPropagation();
+      close();
+      return;
+    }
+    if (event.key !== 'Tab') return;
+    const focusable = [...el.modal.querySelectorAll(FOCUSABLE)].filter(
+      (node) => node.getClientRects().length > 0
+    );
+    if (!focusable.length) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    } else if (!el.modal.contains(document.activeElement)) {
+      event.preventDefault();
+      first.focus();
+    }
+  }
+
+  for (const button of formatButtons) {
+    button.addEventListener('click', () => {
+      prefs.format = button.dataset.shareFormat === 'square' ? 'square' : 'wide';
+      savePrefs(prefs);
+      syncOptionButtons();
+      render();
+    });
+  }
+  for (const button of themeButtons) {
+    button.addEventListener('click', () => {
+      prefs.theme = button.dataset.shareTheme === 'light' ? 'light' : 'dark';
+      savePrefs(prefs);
+      syncOptionButtons();
+      render();
+    });
+  }
+
+  el.openButton.addEventListener('click', open);
+  el.closeButton.addEventListener('click', close);
   el.modal.addEventListener('click', (event) => {
-    if (event.target === el.modal) setHidden(el.modal, true);
+    if (event.target === el.modal) close();
   });
+  document.addEventListener('keydown', onKeydown, true);
   el.downloadButton.addEventListener('click', download);
+  el.copyButton.addEventListener('click', copy);
+  el.nativeShareButton.addEventListener('click', nativeShare);
   el.postButton.addEventListener('click', postToX);
   el.retryButton.addEventListener('click', generate);
+}
+
+/** Whether the Web Share API can share this file here. */
+function canShareFile(file) {
+  try {
+    return Boolean(navigator.share && navigator.canShare?.({ files: [file] }));
+  } catch {
+    return false;
+  }
+}
+
+/** Accessible description of the card (aggregate numbers only). */
+function scorecardAltText(model) {
+  const accuracy = model.accuracy === null ? 'no accuracy yet' : `${model.accuracy}% accuracy`;
+  return `XQuiz scorecard: ${model.rank.title}, ${accuracy}, ${model.score.correct} of ${model.score.total} correct, current streak ${model.streak}, best streak ${model.bestStreak}.`;
 }
