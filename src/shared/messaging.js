@@ -3,6 +3,7 @@
  * `{ type: MESSAGE_TYPES.X, ...payload }`; see MESSAGE_TYPES in constants.js.
  */
 
+import { ext } from './browser.js';
 import { logger } from './logger.js';
 
 /**
@@ -11,7 +12,7 @@ import { logger } from './logger.js';
  */
 export function isExtensionValid() {
   try {
-    return Boolean(chrome.runtime?.id);
+    return Boolean(ext.runtime?.id);
   } catch {
     return false;
   }
@@ -32,7 +33,7 @@ export async function sendMessage(type, payload = {}, fallback = null) {
     return fallback;
   }
   try {
-    const response = await chrome.runtime.sendMessage({ type, ...payload });
+    const response = await ext.runtime.sendMessage({ type, ...payload });
     return response ?? fallback;
   } catch (error) {
     // Typically "Receiving end does not exist" (side panel closed, worker restarting).
@@ -63,8 +64,8 @@ export function broadcast(type, payload = {}) {
  *   before every handler (e.g. to finish loading persisted state).
  */
 export function registerMessageRouter(handlers, { beforeHandle } = {}) {
-  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    if (sender?.id && sender.id !== chrome.runtime.id) {
+  ext.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (sender?.id && sender.id !== ext.runtime.id) {
       logger.warn('Blocked message from untrusted sender:', sender.id);
       sendResponse({ error: 'UNAUTHORIZED' });
       return false;
@@ -96,8 +97,8 @@ export function registerMessageRouter(handlers, { beforeHandle } = {}) {
  * @param {Record<string, (message: any, sender: chrome.runtime.MessageSender) => void>} handlers
  */
 export function listenForMessages(handlers) {
-  chrome.runtime.onMessage.addListener((message, sender) => {
-    if (sender?.id && sender.id !== chrome.runtime.id) return;
+  ext.runtime.onMessage.addListener((message, sender) => {
+    if (sender?.id && sender.id !== ext.runtime.id) return;
     if (Object.hasOwn(handlers, message?.type)) handlers[message.type](message, sender);
   });
 }

@@ -172,6 +172,8 @@ async function init() {
   distraction.apply(settings);
   onSyncedSettingsChanged(applySettings);
   readingTracker.configure(settings);
+  // Where alarms/notifications are missing or unreliable (Safari), this is what builds a due digest.
+  if (settings.digestEnabled) sendMessage(MESSAGE_TYPES.RECONCILE_DIGEST);
 
   createStatusIndicator(settings.tweetsPerQuiz);
   domObserver.observe(document.querySelector('main') || document.body, {

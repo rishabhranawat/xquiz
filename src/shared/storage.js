@@ -5,6 +5,7 @@
  * function is called.
  */
 
+import { ext } from './browser.js';
 import { DEFAULT_SETTINGS, LEGACY_SYNC_SETTING_KEYS, SYNC_SETTING_KEYS } from './constants.js';
 import { migrateLegacySettings, normalizeSettings } from './settings.js';
 
@@ -15,10 +16,10 @@ const READ_SYNC_KEYS = [...SYNC_SETTING_KEYS, ...LEGACY_SYNC_SETTING_KEYS];
  * @param {string | string[]} keys
  * @returns {Promise<Record<string, any>>}
  */
-export const getLocal = (keys) => chrome.storage.local.get(keys);
+export const getLocal = (keys) => ext.storage.local.get(keys);
 
 /** @param {Record<string, any>} items */
-export const setLocal = (items) => chrome.storage.local.set(items);
+export const setLocal = (items) => ext.storage.local.set(items);
 
 /**
  * Reads only the synced (non-secret) settings, normalized. Safe to call from
@@ -26,7 +27,7 @@ export const setLocal = (items) => chrome.storage.local.set(items);
  * @returns {Promise<ReturnType<typeof normalizeSettings>>}
  */
 export async function loadSyncedSettings() {
-  const synced = await chrome.storage.sync.get(READ_SYNC_KEYS);
+  const synced = await ext.storage.sync.get(READ_SYNC_KEYS);
   return normalizeSettings(synced);
 }
 
@@ -36,7 +37,7 @@ export async function loadSyncedSettings() {
  */
 export async function loadSettings() {
   const [synced, local] = await Promise.all([
-    chrome.storage.sync.get(READ_SYNC_KEYS),
+    ext.storage.sync.get(READ_SYNC_KEYS),
     getLocal('apiKey'),
   ]);
   return normalizeSettings({ ...synced, apiKey: local.apiKey ?? DEFAULT_SETTINGS.apiKey });
@@ -49,10 +50,17 @@ export async function loadSettings() {
 export async function saveSettings(raw) {
   const { apiKey, ...synced } = normalizeSettings(raw);
   await setLocal({ apiKey });
-  await chrome.storage.sync.set(synced);
-  await chrome.storage.sync.remove(LEGACY_SYNC_SETTING_KEYS);
+  await ext.storage.sync.set(synced);
+  await ext.storage.sync.remove(LEGACY_SYNC_SETTING_KEYS);
   return { apiKey, ...synced };
 }
+
+/**
+ * Safari maps storage.sync onto storage.local, so a change to a synced key may
+ * be reported under either area. Synced and local key names never overlap.
+ * @param {string} area
+ */
+export const isSettingsArea = (area) => area === 'sync' || area === 'local';
 
 /**
  * Calls `callback` with the normalized synced settings whenever any of them
@@ -60,8 +68,8 @@ export async function saveSettings(raw) {
  * @param {(settings: ReturnType<typeof normalizeSettings>) => void} callback
  */
 export function onSyncedSettingsChanged(callback) {
-  chrome.storage.onChanged.addListener((changes, area) => {
-    if (area !== 'sync' || !SYNC_SETTING_KEYS.some((key) => key in changes)) return;
+  ext.storage.onChanged.addListener((changes, area) => {
+    if (!isSettingsArea(area) || !SYNC_SETTING_KEYS.some((key) => key in changes)) return;
     loadSyncedSettings().then(callback);
   });
 }
@@ -73,19 +81,19 @@ export function onSyncedSettingsChanged(callback) {
  * run.
  */
 export async function migrateStoredSettings() {
-  const stored = await chrome.storage.sync.get(LEGACY_SYNC_SETTING_KEYS);
+  const stored = await ext.storage.sync.get(LEGACY_SYNC_SETTING_KEYS);
   if (!LEGACY_SYNC_SETTING_KEYS.some((key) => key in stored)) return;
-  const current = await chrome.storage.sync.get(SYNC_SETTING_KEYS);
+  const current = await ext.storage.sync.get(SYNC_SETTING_KEYS);
   const { distractionMode, hideVideos, hideImageOnly } = migrateLegacySettings({
     ...current,
     ...stored,
   });
-  await chrome.storage.sync.set(
+  await ext.storage.sync.set(
     Object.fromEntries(
       Object.entries({ distractionMode, hideVideos, hideImageOnly }).filter(
         ([, value]) => value !== undefined
       )
     )
   );
-  await chrome.storage.sync.remove(LEGACY_SYNC_SETTING_KEYS);
+  await ext.storage.sync.remove(LEGACY_SYNC_SETTING_KEYS);
 }

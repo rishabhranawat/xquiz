@@ -9,7 +9,7 @@ import { sendMessage } from '../shared/messaging.js';
 import { byId } from './dom.js';
 
 function openDigestPage() {
-  chrome.tabs.create({ url: chrome.runtime.getURL(DIGEST_PAGE_PATH) });
+  ext.tabs.create({ url: ext.runtime.getURL(DIGEST_PAGE_PATH) });
 }
 
 export function createDigestView() {

@@ -27,10 +27,11 @@ import {
   nextOccurrence,
   pruneByDay,
 } from '../shared/day.js';
+import { ext, hasAlarms, hasNotifications } from '../shared/browser.js';
 import { requestGeminiText } from '../shared/gemini.js';
 import { logger } from '../shared/logger.js';
 import { rankPosts } from '../shared/ranking.js';
-import { loadSettings } from '../shared/storage.js';
+import { isSettingsArea, loadSettings } from '../shared/storage.js';
 import { summarizeDay } from './reading-log.js';
 import { readingStore } from './reading-store.js';
 import { createStore } from './store.js';
@@ -98,10 +99,11 @@ async function runGeneration(day, { force = false, notify = false }) {
 }
 
 async function notifyDigestReady(digest) {
+  if (!hasNotifications()) return; // Safari: the digest is surfaced when the popup opens
   try {
-    await chrome.notifications.create(`${DIGEST_NOTIFICATION_PREFIX}${digest.day}`, {
+    await ext.notifications.create(`${DIGEST_NOTIFICATION_PREFIX}${digest.day}`, {
       type: 'basic',
-      iconUrl: chrome.runtime.getURL('icons/icon128.png'),
+      iconUrl: ext.runtime.getURL('icons/icon128.png'),
       title: 'Your XQuiz daily digest is ready',
       message: digest.overview.slice(0, 200),
     });
@@ -136,13 +138,14 @@ export async function catchUpMissedDigests(now = Date.now()) {
  */
 export async function scheduleDigestAlarm(now = Date.now()) {
   const { digestEnabled, digestTime } = await loadSettings();
+  if (!hasAlarms()) return null; // foreground catch-up (RECONCILE_DIGEST) covers delivery
   if (!digestEnabled) {
-    await chrome.alarms.clear(DIGEST_ALARM_NAME);
+    await ext.alarms.clear(DIGEST_ALARM_NAME);
     return null;
   }
   const when = nextOccurrence(now, digestTime);
-  const existing = await chrome.alarms.get(DIGEST_ALARM_NAME);
-  if (existing?.scheduledTime !== when) await chrome.alarms.create(DIGEST_ALARM_NAME, { when });
+  const existing = await ext.alarms.get(DIGEST_ALARM_NAME);
+  if (existing?.scheduledTime !== when) await ext.alarms.create(DIGEST_ALARM_NAME, { when });
   return when;
 }
 
@@ -171,23 +174,27 @@ export async function reconcileDigest() {
 
 /** Registers alarm/notification/lifecycle listeners. Call synchronously at worker start. */
 export function registerDigest() {
-  chrome.runtime.onInstalled.addListener(() => reconcileDigest().catch(logFailure));
-  chrome.runtime.onStartup.addListener(() => reconcileDigest().catch(logFailure));
+  ext.runtime.onInstalled.addListener(() => reconcileDigest().catch(logFailure));
+  ext.runtime.onStartup.addListener(() => reconcileDigest().catch(logFailure));
   reconcileDigest().catch(logFailure); // every worker wake-up: re-arm the alarm, catch up
 
-  chrome.alarms.onAlarm.addListener((alarm) => {
-    if (alarm.name === DIGEST_ALARM_NAME) handleDigestAlarm().catch(logFailure);
-  });
+  if (hasAlarms()) {
+    ext.alarms.onAlarm.addListener((alarm) => {
+      if (alarm.name === DIGEST_ALARM_NAME) handleDigestAlarm().catch(logFailure);
+    });
+  }
 
-  chrome.notifications.onClicked.addListener((notificationId) => {
-    if (!notificationId.startsWith(DIGEST_NOTIFICATION_PREFIX)) return;
-    const day = notificationId.slice(DIGEST_NOTIFICATION_PREFIX.length);
-    openDigestPage(day).catch(logFailure);
-    chrome.notifications.clear(notificationId);
-  });
+  if (hasNotifications()) {
+    ext.notifications.onClicked.addListener((notificationId) => {
+      if (!notificationId.startsWith(DIGEST_NOTIFICATION_PREFIX)) return;
+      const day = notificationId.slice(DIGEST_NOTIFICATION_PREFIX.length);
+      openDigestPage(day).catch(logFailure);
+      ext.notifications.clear(notificationId);
+    });
+  }
 
-  chrome.storage.onChanged.addListener((changes, area) => {
-    if (area === 'sync' && SYNC_DIGEST_KEYS.some((key) => key in changes)) {
+  ext.storage.onChanged.addListener((changes, area) => {
+    if (isSettingsArea(area) && SYNC_DIGEST_KEYS.some((key) => key in changes)) {
       reconcileDigest().catch(logFailure);
     }
   });
@@ -196,8 +203,8 @@ export function registerDigest() {
 const logFailure = (error) => logger.error('Digest task failed:', error?.message ?? error);
 
 export function openDigestPage(day) {
-  const url = chrome.runtime.getURL(`${DIGEST_PAGE_PATH}${isDayKey(day) ? `?day=${day}` : ''}`);
-  return chrome.tabs.create({ url });
+  const url = ext.runtime.getURL(`${DIGEST_PAGE_PATH}${isDayKey(day) ? `?day=${day}` : ''}`);
+  return ext.tabs.create({ url });
 }
 
 /** Days that have a stored digest, newest first. */
@@ -212,6 +219,16 @@ export const messageHandlers = {
   [MESSAGE_TYPES.GET_DIGEST]: async (message) => {
     const day = isDayKey(message.day) ? message.day : localDayKey();
     return { day, digest: (await digestStore.get())[day] ?? null };
+  },
+
+  /**
+   * Foreground catch-up: popup and content script ask for this when they
+   * load, so a digest that is due gets built even if no alarm or notification
+   * could wake the worker (Safari).
+   */
+  [MESSAGE_TYPES.RECONCILE_DIGEST]: async () => {
+    await reconcileDigest();
+    return { success: true };
   },
 
   [MESSAGE_TYPES.LIST_DIGEST_DAYS]: async () => ({ days: await listDigestDays() }),

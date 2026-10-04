@@ -1,7 +1,12 @@
 /**
  * Attention tracking: a tweet only counts as "read" after the pointer has
- * stayed over it for the configured time.
+ * stayed over it for the configured time. Where hover does not exist (phones,
+ * tablets) the visibility-dwell tracker is used instead; see
+ * attention-visibility.js.
  */
+
+import { isTouchPrimary } from '../shared/browser.js';
+import { createVisibilityAttention } from './attention-visibility.js';
 
 const HOVER_SHADOW = 'inset 0 0 0 2px rgba(59, 130, 246, 0.3)';
 const COUNTED_SHADOW = 'inset 0 0 0 2px rgba(34, 197, 94, 0.5)';
@@ -12,8 +17,16 @@ const COUNTED_FLASH_MS = 500;
  * @param {() => boolean} options.isActive Whether tracking is currently enabled.
  * @param {() => number} options.getRequiredViewMs Hover time needed to count a tweet.
  * @param {(tweetElement: Element) => void} options.onTweetRead Called once per counted tweet.
+ * @param {'auto' | 'hover' | 'visibility'} [options.mode] Defaults to auto-detecting touch.
  */
-export function createAttentionTracker({ isActive, getRequiredViewMs, onTweetRead }) {
+export function createAttentionTracker(options) {
+  const useVisibility =
+    options.mode === 'visibility' ||
+    (options.mode !== 'hover' && isTouchPrimary() && typeof IntersectionObserver !== 'undefined');
+  return useVisibility ? createVisibilityAttention(options) : createHoverAttention(options);
+}
+
+function createHoverAttention({ isActive, getRequiredViewMs, onTweetRead }) {
   /** Tweets currently being hovered: element -> timeout id. */
   const timers = new Map();
   /** Tweets that already have listeners attached. */

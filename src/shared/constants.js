@@ -84,6 +84,7 @@ export const MESSAGE_TYPES = Object.freeze({
   // Content script -> background
   TWEETS_COLLECTED: 'TWEETS_COLLECTED',
   OPEN_SIDE_PANEL: 'OPEN_SIDE_PANEL',
+  RECONCILE_DIGEST: 'RECONCILE_DIGEST',
 
   // Side panel -> background
   REQUEST_QUIZ: 'REQUEST_QUIZ',

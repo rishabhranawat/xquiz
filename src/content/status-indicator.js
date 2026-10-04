@@ -78,6 +78,23 @@ const STYLES = `
   flex-shrink: 0 !important;
 }
 
+/* Phones: sit above X's bottom tab bar (~53px + home indicator) and stay compact. */
+@media (max-width: 700px), (hover: none) and (pointer: coarse) {
+  #xquiz-status {
+    bottom: calc(64px + env(safe-area-inset-bottom, 0px)) !important;
+    right: max(8px, env(safe-area-inset-right, 0px)) !important;
+    padding: 4px 10px !important;
+    gap: 6px !important;
+    font-size: 11px !important;
+    opacity: 0.92 !important;
+    pointer-events: none !important;
+  }
+  #xquiz-status .xquiz-status-text,
+  #xquiz-status .xquiz-status-hidden {
+    display: none !important;
+  }
+}
+
 @keyframes xquiz-flash-green {
   0%, 100% {
     opacity: 1;

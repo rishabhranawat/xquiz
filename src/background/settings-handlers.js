@@ -12,7 +12,7 @@ import { loadSettings, migrateStoredSettings, saveSettings } from '../shared/sto
  * migrate in memory, so a failure here loses nothing.
  */
 export function registerSettingsMigration() {
-  chrome.runtime.onInstalled?.addListener(() => {
+  ext.runtime.onInstalled?.addListener(() => {
     migrateStoredSettings().catch((error) => {
       logger.warn('Settings migration failed:', error.message);
     });
