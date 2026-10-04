@@ -29,8 +29,7 @@
 
 const MEDIA_LINK_PATTERN = /(?:https?:\/\/)?(?:t\.co|pic\.(?:twitter|x)\.com)\/\S*/gi;
 // Zero-width characters X sometimes pads text with.
-// eslint-disable-next-line no-irregular-whitespace
-const INVISIBLE_PATTERN = /[​-‍⁠﻿]/g;
+const INVISIBLE_PATTERN = new RegExp('[\\u200B-\\u200D\\u2060\\uFEFF]', 'g');
 
 const TEXT_SELECTOR = '[data-testid="tweetText"]';
 const HEADER_SELECTOR = '[data-testid="User-Name"]';
