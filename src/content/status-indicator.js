@@ -62,6 +62,11 @@ const STYLES = `
   color: #ef4444 !important;
 }
 
+#xquiz-status .xquiz-status-hidden {
+  color: #a1a1aa !important;
+  font-size: 11px !important;
+}
+
 #xquiz-status:not(.reading) .xquiz-status-count {
   display: none !important;
 }
@@ -148,8 +153,10 @@ export function createStatusIndicator(total) {
     dot,
     createChild('span', 'xquiz-status-text', 'XQuiz'),
     createChild('span', 'xquiz-status-label', 'NOT READING'),
-    createChild('span', 'xquiz-status-count', `0/${total}`)
+    createChild('span', 'xquiz-status-count', `0/${total}`),
+    createChild('span', 'xquiz-status-hidden', '')
   );
+  root.querySelector('.xquiz-status-hidden').hidden = true;
 
   const style = document.createElement('style');
   style.id = STYLE_ID;
@@ -161,13 +168,16 @@ export function createStatusIndicator(total) {
 
 /**
  * Updates the badge state.
- * @param {{active: boolean, count: number, total: number}} state
+ * @param {{active: boolean, count: number, total: number, hidden?: number}} state
  */
-export function updateStatusIndicator({ active, count, total }) {
+export function updateStatusIndicator({ active, count, total, hidden = 0 }) {
   if (!root) return;
   root.classList.toggle('reading', active);
   root.querySelector('.xquiz-status-label').textContent = active ? 'READING' : 'NOT READING';
   root.querySelector('.xquiz-status-count').textContent = `${count}/${total}`;
+  const hiddenLabel = root.querySelector('.xquiz-status-hidden');
+  hiddenLabel.hidden = hidden === 0;
+  hiddenLabel.textContent = `${hidden} hidden`;
 }
 
 /** Re-creates the badge if the page removed it. */

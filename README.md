@@ -22,7 +22,7 @@ XQuiz monitors the tweets you scroll past on Twitter/X and periodically generate
 - **Progress tracking** - Monitors your score, accuracy percentage, and answer streaks
 - **Shareable scorecards** - Generate and share your retention stats
 - **Configurable** - Adjust how many tweets trigger a quiz
-- **Video-free mode** - Optional toggle to hide videos from your feed when you want fewer distractions
+- **Distraction mode** - Optional toggle that hides video posts and image-only posts (pictures, GIFs or cards with no text) from your feed; hidden posts are never used for quizzes
 - **Quiz history** - Review your most recent quiz questions and clear them whenever you like
 - **Custom attention timer** - Pick how long a tweet must stay visible before it counts as “read”
 - **Track specific pages** - Decide whether quizzes should monitor only the home feed or additional sections like user profiles
@@ -94,11 +94,12 @@ xquiz/
 │   │   ├── content.js          # Entry point wiring the modules together
 │   │   ├── page-tracker.js     # Which pages count (pure) + SPA navigation watcher
 │   │   ├── tweet-extractor.js  # DOM selectors -> tweet data
+│   │   ├── post-classifier.js  # Video / image-only / text classification (pure + DOM)
 │   │   ├── tweet-collector.js  # Buffer + de-duplication of read tweets
 │   │   ├── attention-tracker.js# Hover-time based "read" detection
 │   │   ├── status-indicator.js # Floating READING / NOT READING badge
 │   │   ├── auto-open.js        # Opens the side panel on the next user gesture
-│   │   └── distraction.js      # Hide video tweets
+│   │   └── distraction.js      # Distraction mode: hide video / image-only posts
 │   └── sidepanel/              # Side panel UI
 │       ├── index.html, styles.css
 │       ├── sidepanel.js        # Entry point: creates views, handles messages

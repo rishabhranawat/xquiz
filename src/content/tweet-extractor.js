@@ -54,7 +54,7 @@ function extractAuthorHandle(tweetElement) {
   return 'unknown';
 }
 
-function extractTweetId(tweetElement) {
+export function extractTweetId(tweetElement) {
   // Prefer the timestamp permalink, then any status link in the tweet.
   const timestampLink = tweetElement.querySelector('time')?.parentElement;
   if (timestampLink?.tagName === 'A') {

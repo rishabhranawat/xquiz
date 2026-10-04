@@ -692,6 +692,19 @@ body {
   flex: 1;
 }
 
+.sub-toggles {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 12px 0 0 12px;
+  padding-left: 12px;
+  border-left: 2px solid var(--border);
+}
+
+.sub-toggles.hidden {
+  display: none;
+}
+
 .toggle-title {
   font-size: 13px;
   font-weight: 500;

@@ -17,7 +17,9 @@ export const PAGE_IDS = {
 export const DEFAULT_SETTINGS = Object.freeze({
   tweetsPerQuiz: 5,
   apiKey: '',
-  removeVideos: false,
+  distractionMode: false,
+  hideVideos: true,
+  hideImageOnly: true,
   viewTimeMs: 2000,
   allowedPages: Object.freeze([PAGE_IDS.HOME]),
 });
@@ -34,10 +36,18 @@ export const SETTING_LIMITS = Object.freeze({
  */
 export const SYNC_SETTING_KEYS = Object.freeze([
   'tweetsPerQuiz',
-  'removeVideos',
+  'distractionMode',
+  'hideVideos',
+  'hideImageOnly',
   'viewTimeMs',
   'allowedPages',
 ]);
+
+/**
+ * Settings keys that older versions stored in chrome.storage.sync. They are
+ * read once so they can be migrated (see migrateLegacySettings) and removed.
+ */
+export const LEGACY_SYNC_SETTING_KEYS = Object.freeze(['removeVideos']);
 
 export const QUIZ_TYPES = Object.freeze({
   MULTIPLE_CHOICE: 'multiple_choice',

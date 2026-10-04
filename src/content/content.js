@@ -14,7 +14,7 @@ import { normalizeSettings } from '../shared/settings.js';
 import { loadSyncedSettings, onSyncedSettingsChanged } from '../shared/storage.js';
 import { createAttentionTracker } from './attention-tracker.js';
 import { createAutoOpen } from './auto-open.js';
-import { setVideosHidden, tweetContainsVideo } from './distraction.js';
+import { createDistractionFilter, isPostHidden } from './distraction.js';
 import { isOnTrackedPage, watchNavigation } from './page-tracker.js';
 import {
   createStatusIndicator,
@@ -33,6 +33,8 @@ import {
 const MUTATION_SCAN_DELAY_MS = 300;
 const SCROLL_SCAN_DELAY_MS = 500;
 const INITIAL_SCAN_DELAY_MS = 1000;
+// Hiding must beat the user's eye, so it uses a much shorter debounce.
+const DISTRACTION_SCAN_DELAY_MS = 50;
 
 /** Latest user settings (kept fresh via chrome.storage.onChanged). */
 let settings = null;
@@ -40,6 +42,7 @@ let settings = null;
 let isActive = false;
 
 const collector = createTweetCollector();
+const distraction = createDistractionFilter({ onCountChange: () => refreshStatus() });
 const autoOpen = createAutoOpen();
 const attention = createAttentionTracker({
   isActive: () => isActive,
@@ -56,7 +59,16 @@ function debounce(fn, delayMs) {
 }
 
 function statusState() {
-  return { active: isActive, count: collector.size, total: settings.tweetsPerQuiz };
+  return {
+    active: isActive,
+    count: collector.size,
+    total: settings.tweetsPerQuiz,
+    hidden: settings.distractionMode ? distraction.hiddenCount : 0,
+  };
+}
+
+function refreshStatus() {
+  if (settings && isExtensionValid()) updateStatusIndicator(statusState());
 }
 
 function sendProgress() {
@@ -78,7 +90,13 @@ function flushTweets() {
 
 function handleTweetRead(tweetElement) {
   const tweet = extractTweetData(tweetElement);
-  if (!tweet || !isQuizWorthyText(tweet.text) || !collector.add(tweet)) return;
+  if (
+    isPostHidden(tweetElement) ||
+    !tweet ||
+    !isQuizWorthyText(tweet.text) ||
+    !collector.add(tweet)
+  )
+    return;
 
   logger.debug(`Read tweet ${collector.size}/${settings.tweetsPerQuiz} from @${tweet.author}`);
   sendProgress();
@@ -104,13 +122,14 @@ function scanForTweets() {
     return;
   }
 
+  distraction.scan();
   ensureStatusIndicator(statusState());
   refreshActiveState();
   if (!isActive) return;
 
   for (const tweetElement of findTweetElements()) {
     if (attention.isObserving(tweetElement)) continue;
-    if (settings.removeVideos && tweetContainsVideo(tweetElement)) continue;
+    if (isPostHidden(tweetElement)) continue; // Distraction mode: never quiz on hidden posts
 
     const tweet = readTweetFingerprint(tweetElement);
     if (!tweet || !isQuizWorthyText(tweet.text) || collector.hasSeen(tweet.contentHash)) continue;
@@ -122,13 +141,17 @@ function scanForTweets() {
 const scheduleMutationScan = debounce(scanForTweets, MUTATION_SCAN_DELAY_MS);
 const scheduleScrollScan = debounce(scanForTweets, SCROLL_SCAN_DELAY_MS);
 
+const scheduleDistractionScan = debounce(() => distraction.scan(), DISTRACTION_SCAN_DELAY_MS);
+
 const domObserver = new MutationObserver((mutations) => {
-  if (mutations.some((mutation) => mutation.addedNodes.length > 0)) scheduleMutationScan();
+  if (!mutations.some((mutation) => mutation.addedNodes.length > 0)) return;
+  scheduleDistractionScan();
+  scheduleMutationScan();
 });
 
 function applySettings(newSettings) {
   settings = newSettings;
-  setVideosHidden(settings.removeVideos);
+  distraction.apply(settings);
   if (isExtensionValid() && document.body) {
     refreshActiveState();
     updateStatusIndicator(statusState());
@@ -143,7 +166,7 @@ async function init() {
     logger.warn('Could not load settings, using defaults:', error.message);
     return normalizeSettings({});
   });
-  setVideosHidden(settings.removeVideos);
+  distraction.apply(settings);
   onSyncedSettingsChanged(applySettings);
 
   createStatusIndicator(settings.tweetsPerQuiz);

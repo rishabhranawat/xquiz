@@ -24,7 +24,10 @@ export function createSettingsView({ onSaved, onStatsReset }) {
     tweetsValue: byId('tweets-value'),
     viewTimeSlider: byId('view-time-seconds'),
     viewTimeValue: byId('view-time-value'),
-    removeVideos: byId('remove-videos-toggle'),
+    distractionMode: byId('distraction-mode-toggle'),
+    distractionOptions: byId('distraction-options'),
+    hideVideos: byId('hide-videos-toggle'),
+    hideImageOnly: byId('hide-image-only-toggle'),
     resetStats: byId('reset-stats'),
     clearTweetHistory: byId('clear-history'),
   };
@@ -32,6 +35,10 @@ export function createSettingsView({ onSaved, onStatsReset }) {
 
   const open = () => setHidden(el.modal, false);
   const close = () => setHidden(el.modal, true);
+
+  /** The sub-options only make sense (and show) while Distraction mode is on. */
+  const syncDistractionOptions = () =>
+    setHidden(el.distractionOptions, !el.distractionMode.checked);
 
   /** Writes settings into the form controls. */
   function populate(settings) {
@@ -41,7 +48,10 @@ export function createSettingsView({ onSaved, onStatsReset }) {
     const seconds = settings.viewTimeMs / 1000;
     el.viewTimeSlider.value = seconds;
     el.viewTimeValue.textContent = `${seconds}s`;
-    el.removeVideos.checked = settings.removeVideos;
+    el.distractionMode.checked = settings.distractionMode;
+    el.hideVideos.checked = settings.hideVideos;
+    el.hideImageOnly.checked = settings.hideImageOnly;
+    syncDistractionOptions();
     pageCheckboxes.forEach((checkbox) => {
       checkbox.checked = settings.allowedPages.includes(checkbox.value);
     });
@@ -61,7 +71,9 @@ export function createSettingsView({ onSaved, onStatsReset }) {
       apiKey: el.apiKey.value,
       tweetsPerQuiz: parseInt(el.tweetsSlider.value, 10),
       viewTimeMs: parseInt(el.viewTimeSlider.value, 10) * 1000,
-      removeVideos: el.removeVideos.checked,
+      distractionMode: el.distractionMode.checked,
+      hideVideos: el.hideVideos.checked,
+      hideImageOnly: el.hideImageOnly.checked,
       allowedPages,
     });
   }
@@ -99,6 +111,7 @@ export function createSettingsView({ onSaved, onStatsReset }) {
   el.viewTimeSlider.addEventListener('input', () => {
     el.viewTimeValue.textContent = `${el.viewTimeSlider.value}s`;
   });
+  el.distractionMode.addEventListener('change', syncDistractionOptions);
   el.saveButton.addEventListener('click', save);
   el.resetStats.addEventListener('click', resetStats);
   el.clearTweetHistory.addEventListener('click', clearTweetHistory);

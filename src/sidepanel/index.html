@@ -140,13 +140,35 @@
           <div class="setting-group toggle-group">
             <div class="toggle-row">
               <div>
-                <p class="toggle-title">Remove videos from feed</p>
-                <p class="setting-hint">Hide tweets that contain videos so you only see text and images.</p>
+                <p class="toggle-title">Distraction mode</p>
+                <p class="setting-hint">Declutter your feed by hiding posts that are mostly noise. Hidden posts are never used for quizzes.</p>
               </div>
-              <label class="switch" aria-label="Remove videos from feed">
-                <input type="checkbox" id="remove-videos-toggle">
+              <label class="switch" aria-label="Distraction mode">
+                <input type="checkbox" id="distraction-mode-toggle">
                 <span class="slider round"></span>
               </label>
+            </div>
+            <div class="sub-toggles hidden" id="distraction-options">
+              <div class="toggle-row">
+                <div>
+                  <p class="toggle-title">Hide videos</p>
+                  <p class="setting-hint">Posts that contain a video.</p>
+                </div>
+                <label class="switch" aria-label="Hide videos">
+                  <input type="checkbox" id="hide-videos-toggle" checked>
+                  <span class="slider round"></span>
+                </label>
+              </div>
+              <div class="toggle-row">
+                <div>
+                  <p class="toggle-title">Hide image-only posts</p>
+                  <p class="setting-hint">Posts with pictures, GIFs or link cards but no text of their own.</p>
+                </div>
+                <label class="switch" aria-label="Hide image-only posts">
+                  <input type="checkbox" id="hide-image-only-toggle" checked>
+                  <span class="slider round"></span>
+                </label>
+              </div>
             </div>
           </div>
           <div class="setting-group" id="gemini-key-group">
