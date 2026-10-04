@@ -111,8 +111,8 @@
 }
 
 .layout-popup .slider-container input[type='range'] {
-  min-height: 44px;
-  background: transparent;
+  height: 44px;
+  background: linear-gradient(var(--bg-tertiary), var(--bg-tertiary)) center / 100% 4px no-repeat;
 }
 
 .layout-popup .slider-container input[type='range']::-webkit-slider-thumb {

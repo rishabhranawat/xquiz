@@ -386,3 +386,7 @@ select:focus-visible,
     min-height: 44px;
   }
 }
+
+.brand-sub {
+  white-space: nowrap;
+}

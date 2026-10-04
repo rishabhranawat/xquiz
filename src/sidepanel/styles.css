@@ -719,7 +719,7 @@ body {
   margin-top: 10px;
 }
 
-.page-option {
+.setting-group .page-option {
   display: flex;
   gap: 12px;
   align-items: center;
